@@ -11,6 +11,25 @@ generator client {
   previewFeatures = ["fullTextSearch"]
 }
 
+model HdbResaleTransaction {
+  identifier      Int      @id @default(autoincrement())
+  transactionDate DateTime
+  town            String
+  block           String
+  streetName      String
+
+  // Example StoreyRange of [0-10] would have 0 at begin and 10 at end
+  storeyRangeBegin Int
+  storeyRangeEnd   Int
+
+  floorAreaSquareFeet    Int
+  flatModel              String
+  flatType               String
+  leaseCommenceYear      Int
+  remainingLeaseInMonths Int
+  resalePrice            Float
+}
+
 model VerificationToken {
   identifier String   @id
   token      String
