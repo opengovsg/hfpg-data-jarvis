@@ -62,7 +62,7 @@ SQL QUERY:`,
 
       const fixedQuery = await fixedQueryChain.invoke({ query: generatedQuery })
 
-      console.log('Fixee query: ', fixedQuery)
+      console.log('Fixed query: ', fixedQuery)
 
       const finalResponsePrompt =
         PromptTemplate.fromTemplate(`Based on the table schema below, question, SQL query, and SQL response, write a natural language response:
@@ -95,8 +95,10 @@ SQL QUERY:`,
           // TODO: Explore if there are vulnerabilities here
           response: async (input) => {
             const res = await prisma.$queryRawUnsafe(input.query)
-            console.log('>>> response', res)
-            return JSON.stringify(res)
+            console.log('Response after executing query: ', res)
+            return JSON.stringify(res, (_, v) =>
+              typeof v === 'bigint' ? v.toString() : v,
+            )
           },
         },
         finalResponsePrompt,
