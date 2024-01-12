@@ -6,12 +6,13 @@ import {
   Box,
   VStack,
   InputGroup,
+  Icon,
 } from '@chakra-ui/react'
 import { Input, Spinner } from '@opengovsg/design-system-react'
 import _ from 'lodash'
 import { uniqueId } from 'lodash'
 import { useState } from 'react'
-import { BiSend } from 'react-icons/bi'
+import { BiGlasses, BiSend } from 'react-icons/bi'
 import { useZodForm } from '~/lib/form'
 import { type NextPageWithLayout } from '~/lib/types'
 import { askQuestionSchema } from '~/server/modules/jarvis/jarvis.schema'
@@ -40,7 +41,10 @@ const Playground: NextPageWithLayout = () => {
       <VStack bgColor="white" minH="80vh" minW="100%">
         {chatHistory.map((chatMsg) => (
           <VStack key={chatMsg.id} align="start" w="90%" p={2}>
-            <Text textStyle="subhead-1">{_.capitalize(chatMsg.from)}</Text>
+            <HStack spacing={1}>
+              {chatMsg.from === 'jarvis' && <Icon as={BiGlasses} />}
+              <Text textStyle="subhead-1">{_.capitalize(chatMsg.from)}</Text>
+            </HStack>
             <Box>{chatMsg.message}</Box>
           </VStack>
         ))}
