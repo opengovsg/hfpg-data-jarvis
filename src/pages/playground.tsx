@@ -38,9 +38,9 @@ const Playground: NextPageWithLayout = () => {
 
   return (
     <Grid h="90vh" w="100%" p={4}>
-      <VStack bgColor="white" minH="80vh" minW="100%">
+      <VStack bgColor="white" minH="80vh" minW="100%" overflowY="scroll">
         {chatHistory.map((chatMsg) => (
-          <VStack key={chatMsg.id} align="start" w="90%" p={2}>
+          <VStack key={chatMsg.id} align="start" w="90%" p={2} pb={4}>
             <HStack spacing={1}>
               {chatMsg.from === 'jarvis' && <Icon as={BiGlasses} />}
               <Text textStyle="subhead-1">{_.capitalize(chatMsg.from)}</Text>
@@ -53,6 +53,7 @@ const Playground: NextPageWithLayout = () => {
       </VStack>
       <form
         onSubmit={askQuestionForm.handleSubmit(async (data) => {
+          askQuestionForm.reset({ question: '' })
           setIsLoading(true)
           chatHistory.push({
             message: data.question,
