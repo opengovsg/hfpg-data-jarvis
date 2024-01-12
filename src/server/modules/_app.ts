@@ -8,10 +8,12 @@ import { storageRouter } from './storage/storage.router'
 import { authRouter } from './auth/auth.router'
 import { threadRouter } from './thread/thread.router'
 import { profileRouter } from './profile/profile.router'
+import { jarvisRouter } from './jarvis/jarvis.router'
 
 export const appRouter = router({
   healthcheck: publicProcedure.query(() => 'yay!'),
   me: meRouter,
+  jarvis: jarvisRouter,
   auth: authRouter,
   profile: profileRouter,
   post: postRouter,
