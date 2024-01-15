@@ -25,7 +25,11 @@ export const jarvisRouter = router({
       const similarSqlStatementPrompt =
         getSimilarSqlStatementsPrompt(nearestEmbeddings)
 
-      // const tablePrompt = await getTablePrompt('HdbResaleTransaction', prisma)
+      console.log(
+        'Retrieved similar sql statements: ',
+        similarSqlStatementPrompt,
+      )
+
       const llm = new ChatOpenAI({ openAIApiKey: env.OPEN_API_KEY })
 
       const prompt =

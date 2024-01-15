@@ -53,11 +53,16 @@ export const seedQueries = async () => {
       rawQuestion:
         'What is the month over month average price trend for 3-bedroom flats in woodlands?',
       sqlQuery: `SELECT
+      transactionMonth,
+      transactionYear,
       averageMonthlyPrice,
-      (averageMonthlyPrice - lag(averageMonthlyPrice) OVER (ORDER BY transactionMonth)) / lag(averageMonthlyPrice) OVER (ORDER BY transactionMonth) AS monthOnMonthPriceChange
+      (averageMonthlyPrice - lag(averageMonthlyPrice) OVER (ORDER BY transactionMonth,
+          transactionYear)) / lag(averageMonthlyPrice) OVER (ORDER BY transactionMonth,
+        transactionYear) AS monthOnMonthPriceChange
     FROM (
       SELECT
         EXTRACT(MONTH FROM "transactionDate") AS transactionMonth,
+        EXTRACT(YEAR FROM "transactionDate") AS transactionYear,
         town,
         AVG("resalePrice") AS averageMonthlyPrice
       FROM
@@ -68,7 +73,11 @@ export const seedQueries = async () => {
         AND UPPER("flatType") = '3 ROOM'
       GROUP BY
         town,
-        EXTRACT(MONTH FROM "transactionDate")) sub;`,
+        EXTRACT(MONTH FROM "transactionDate"),
+        EXTRACT(YEAR FROM "transactionDate")) sub
+    ORDER BY
+      transactionMonth,
+      transactionYear;`,
     },
   ]
 
