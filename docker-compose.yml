@@ -2,15 +2,13 @@ version: '3'
 
 services:
   jarvis-postgres:
-    image: postgres:latest
+    image: ankane/pgvector
     ports:
       - 5430:5432
     environment:
       - POSTGRES_DB=app
       - POSTGRES_USER=root
       - POSTGRES_PASSWORD=root
-    volumes:
-      - postgres-volume:/var/lib/postgresql/data
 
 volumes:
   postgres-volume:
