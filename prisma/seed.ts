@@ -4,13 +4,15 @@
  * @link https://www.prisma.io/docs/guides/database/seed-database
  */
 import { PrismaClient } from '@prisma/client'
-import seedResaleFromCsv from './one-time-scripts/seed-hdb-dataset/seed-hdb-dataset'
+import seedResaleFromCsv from './seeds/hdb/seed-hdb-dataset'
+import { seedQueries } from './seeds/queries/seed-queries'
 
 const prisma = new PrismaClient()
 
 async function main() {
   // Nothing
   await seedResaleFromCsv()
+  await seedQueries()
 }
 
 main()

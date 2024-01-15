@@ -8,12 +8,12 @@ import { env } from '~/env.mjs'
 import { askQuestionSchema } from './jarvis.schema'
 
 import { VectorStore } from './VectorStore'
+import { getSimilarSqlStatementsPrompt } from '../langchain/sql/sql.utils'
 
 export const jarvisRouter = router({
   get: protectedProcedure
     .input(askQuestionSchema)
     .query(async ({ ctx: { prisma }, input: { question } }) => {
-      // TODO: After Foong gives us dataset, use this to get the most related SQL queries and add it to the prompts
       const vectorStore = new VectorStore(prisma)
 
       const embedding = await vectorStore.generateEmbedding(question)
@@ -22,7 +22,8 @@ export const jarvisRouter = router({
         embedding,
       })
 
-      console.log(nearestEmbeddings, question)
+      const similarSqlStatementPrompt =
+        getSimilarSqlStatementsPrompt(nearestEmbeddings)
 
       // const tablePrompt = await getTablePrompt('HdbResaleTransaction', prisma)
       const llm = new ChatOpenAI({ openAIApiKey: env.OPEN_API_KEY })
@@ -32,6 +33,8 @@ export const jarvisRouter = router({
 
               Never query for all columns from a table. You must query only the columns that are needed to answer the question. You must wrap each column name in double quotes (") to denote them as delimited identifiers.
       Pay attention to use only the column names you can see in the tables below. Be careful to not query for columns that do not exist. Also, pay attention to which column is in which table.
+
+      ${similarSqlStatementPrompt}
 
       ------------
       SCHEMA: {schema}

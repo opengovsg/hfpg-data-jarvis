@@ -70,3 +70,20 @@ export const generateSampleDataPrompt = async (
     query: `SELECT * FROM "${tableName}" LIMIT ${nRowsLimit}`,
   }
 }
+
+export const getSimilarSqlStatementsPrompt = (
+  sqlStatements: { sqlQuery: string; rawQuestion: string }[],
+) => {
+  if (sqlStatements.length === 0) return ''
+
+  const stringBuilder = []
+
+  for (const sqlStatement of sqlStatements) {
+    stringBuilder.push(
+      `Past Question: ${sqlStatement.rawQuestion}, Sql Query: ${sqlStatement.sqlQuery}`,
+    )
+  }
+
+  return `You may use the following SQL statements as a reference for what tables might be available. Use responses to past questions also to guide you:\n\n
+  ${stringBuilder.join('\n')}`
+}
