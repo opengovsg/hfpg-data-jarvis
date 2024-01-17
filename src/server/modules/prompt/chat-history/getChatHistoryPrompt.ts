@@ -1,5 +1,5 @@
 import type { OpenAI } from 'openai'
-import { type ChatHistoryEmbeddingRes } from '../../jarvis/chat-history.service'
+import { type ChatMessageEmbeddingRes } from '../../jarvis/chat-history.service'
 
 // export const getChatHistoryPrompt = (
 //   chatHistory: ChatHistoryEmbeddingRes,
@@ -29,7 +29,7 @@ import { type ChatHistoryEmbeddingRes } from '../../jarvis/chat-history.service'
 // }
 
 export const getChatHistoryParams = (
-  chatHistory: ChatHistoryEmbeddingRes,
+  chatHistory: ChatMessageEmbeddingRes,
 ): OpenAI.Chat.Completions.ChatCompletionMessageParam[] => {
   return chatHistory.map((hist) => ({
     role: hist.type === 'USER' ? 'user' : 'assistant',

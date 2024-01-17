@@ -1,60 +1,60 @@
-import { ChatHistoryUser, type PrismaClient } from '@prisma/client'
+import { ChatMessageUser, type PrismaClient } from '@prisma/client'
 import pgvector from 'pgvector'
 import { z } from 'zod'
 
-const chatHistoryEmbeddingRes = z.array(
+const chatMessageEmbeddingRes = z.array(
   z.object({
     id: z.number(),
     rawMessage: z.string(),
-    type: z.nativeEnum(ChatHistoryUser),
+    type: z.nativeEnum(ChatMessageUser),
   }),
 )
 
-export type ChatHistoryEmbeddingRes = z.infer<typeof chatHistoryEmbeddingRes>
+export type ChatMessageEmbeddingRes = z.infer<typeof chatMessageEmbeddingRes>
 
 /** TODO: For use next time, experimentation on long term memory by getting nearest vectors of QnA asked before caused model to hallucinate1 */
-export class ChatHistoryVectorService {
+export class ChatMessageVectorService {
   constructor(private readonly prisma: PrismaClient) {}
 
   async storeEmbedding({
     embedding,
     rawMessage,
+    conversationId,
     userType,
-    userId,
     prisma = this.prisma,
   }: {
     embedding: number[]
     rawMessage: string
-    userType: ChatHistoryUser
-    userId: string
+    userType: ChatMessageUser
+    conversationId: number
     prisma?: PrismaClient
   }) {
     await prisma.$queryRaw`INSERT INTO 
-    "ChatHistory" ("messageEmbedding", "rawMessage", "type", "userId") 
+    "ChatMessage" ("messageEmbedding", "rawMessage", "type", "conversationId") 
     VALUES 
       (
         ${pgvector.toSql(embedding)}::vector,
         ${rawMessage}, 
-        cast(${userType} as "ChatHistoryUser"), 
-        ${userId}
+        cast(${userType} as "ChatMessageUser"), 
+        ${conversationId}
       );`
   }
 
   // TODO: Approximate token count of built prompt, then only add in chat history until before the token window
   // FOR MVP we just get limit 5 as a heuristic for STM of LLMS
-  async getChatHistory({
+  async getChatMessage({
     prisma = this.prisma,
     limit = 5,
-    userId,
+    conversationId,
   }: {
     prisma?: PrismaClient
     limit?: number
-    userId: string
+    conversationId: number
   }) {
-    return await prisma.chatHistory.findMany({
+    return await prisma.chatMessage.findMany({
       orderBy: { createdAt: 'desc' },
       take: limit,
-      where: { userId },
+      where: { conversationId },
     })
   }
 
@@ -62,20 +62,20 @@ export class ChatHistoryVectorService {
     embedding,
     prisma = this.prisma,
     limit = 10,
-    userId,
+    conversationId,
   }: {
     embedding: number[]
-    userId: string
+    conversationId: number
     prisma?: PrismaClient
     limit?: number
   }) {
     const similarMessages =
       await prisma.$queryRaw`SELECT id, "rawMessage", "type"
-    FROM "ChatHistory" 
-    WHERE "ChatHistory"."userId" = ${userId}
+    FROM "ChatMessage" 
+    WHERE "ChatMessage"."conversationId" = ${conversationId}
     ORDER BY "messageEmbedding" <-> ${pgvector.toSql(embedding)}::vector
     LIMIT ${limit};`
 
-    return chatHistoryEmbeddingRes.parse(similarMessages)
+    return chatMessageEmbeddingRes.parse(similarMessages)
   }
 }

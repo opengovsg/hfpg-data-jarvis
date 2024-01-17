@@ -5,41 +5,66 @@ import { askQuestionSchema } from './jarvis.schema'
 import { PreviousSqlVectorService } from './sql-vector.service'
 import { getSimilarSqlStatementsPrompt } from '../prompt/sql/sql.utils'
 import { generateEmbeddingFromOpenApi } from './vector.utils'
-import { ChatHistoryVectorService } from './chat-history.service'
+import { ChatMessageVectorService } from './chat-history.service'
 import { OpenApiClient } from './open-api.service'
 import { normaliseErrors, parseOpenApiResponse } from './jarvis.utils'
 
 const UNABLE_TO_FIND_ANSWER_MESSAGE = `I am unable to find the answer, please try again.`
 
 export const jarvisRouter = router({
-  get: protectedProcedure.input(askQuestionSchema).query(
-    async ({
-      ctx: {
-        prisma,
-        logger,
-        user: { id: userId },
-      },
-      input: { question },
-    }) => {
-      const sqlVectorService = new PreviousSqlVectorService(prisma)
-      const chatHistoryVectorService = new ChatHistoryVectorService(prisma)
+  getConversation: protectedProcedure.query(
+    async ({ ctx: { prisma, user } }) => {
+      // TODO: Change this when we support multiple conversations
+      let conversation = await prisma.conversation.findFirst({
+        where: { userId: user.id },
+      })
 
-      const questionEmbedding = await generateEmbeddingFromOpenApi(question)
+      // for now just create a conversation if user does not have convo
+      if (conversation === null) {
+        conversation = await prisma.conversation.create({
+          data: { title: '', userId: user.id },
+        })
+      }
 
-      const nearestSqlEmbeddings = await sqlVectorService.findNearestEmbeddings(
-        {
-          embedding: questionEmbedding,
+      const chatMessages = await prisma.chatMessage.findMany({
+        where: { conversationId: conversation.id },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          rawMessage: true,
+          type: true,
+          id: true,
+          createdAt: true,
         },
-      )
+      })
 
-      const similarSqlStatementPrompt =
-        getSimilarSqlStatementsPrompt(nearestSqlEmbeddings)
+      return { conversationId: conversation.id, chatMessages }
+    },
+  ),
+  getAnswer: protectedProcedure
+    .input(askQuestionSchema)
+    .mutation(
+      async ({
+        ctx: { prisma, logger },
+        input: { question, conversationId },
+      }) => {
+        const sqlVectorService = new PreviousSqlVectorService(prisma)
+        const chatHistoryVectorService = new ChatMessageVectorService(prisma)
 
-      // const chatHistoryParams = getChatHistoryParams(latest5ChatHistory)
+        const questionEmbedding = await generateEmbeddingFromOpenApi(question)
 
-      const tableInfo = await getTableInfo('hdb_resale_transaction', prisma)
+        const nearestSqlEmbeddings =
+          await sqlVectorService.findNearestEmbeddings({
+            embedding: questionEmbedding,
+          })
 
-      const preamble = `You are an AI Chatbot specialised in PostgresQL. Based on the provided SQL table schema below, write a PostgreSQL query that would answer the user's question.
+        const similarSqlStatementPrompt =
+          getSimilarSqlStatementsPrompt(nearestSqlEmbeddings)
+
+        // const chatHistoryParams = getChatHistoryParams(latest5ChatHistory)
+
+        const tableInfo = await getTableInfo('hdb_resale_transaction', prisma)
+
+        const preamble = `You are an AI Chatbot specialised in PostgresQL. Based on the provided SQL table schema below, write a PostgreSQL query that would answer the user's question.
 
       Never query for all columns from a table. You must query only the columns that are needed to answer the question.
       Pay attention to use only the column names you can see in the tables below. Be careful to not query for columns that do not exist. Also, pay attention to which column is in which table.
@@ -55,37 +80,43 @@ export const jarvisRouter = router({
       Return only the SQL query and nothing else.
       `
 
-      const response = await OpenApiClient.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          {
-            role: 'system',
-            content: preamble,
-          },
-          // TODO: Chat history seems to cause model to hallucinate, to add this at a later date
-          // ...chatHistoryParams,
-          {
-            role: 'user',
-            content: question,
-          },
-        ],
-      })
+        const response = await OpenApiClient.chat.completions.create({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            {
+              role: 'system',
+              content: preamble,
+            },
+            // TODO: Chat history seems to cause model to hallucinate, to add this at a later date
+            // ...chatHistoryParams,
+            {
+              role: 'user',
+              content: question,
+            },
+          ],
+        })
 
-      const queryResponse = parseOpenApiResponse(response)
-      let finalResponse = UNABLE_TO_FIND_ANSWER_MESSAGE
+        const queryResponse = parseOpenApiResponse(response)
+        let finalResponse = UNABLE_TO_FIND_ANSWER_MESSAGE
 
-      if (
-        queryResponse.type === 'failure' ||
-        queryResponse.response === UNABLE_TO_FIND_ANSWER_MESSAGE
-      ) {
-        return UNABLE_TO_FIND_ANSWER_MESSAGE
-      }
+        if (
+          queryResponse.type === 'failure' ||
+          queryResponse.response === UNABLE_TO_FIND_ANSWER_MESSAGE
+        ) {
+          return UNABLE_TO_FIND_ANSWER_MESSAGE
+        }
 
-      try {
-        console.log('Generated query: ', queryResponse.response)
-        const res = await prisma.$queryRawUnsafe(queryResponse.response)
+        try {
+          console.log('Generated query: ', queryResponse.response)
+          const res = await prisma.$queryRawUnsafe(queryResponse.response)
 
-        const nlpPrompt = `Based on the table schema below, question, SQL query, and SQL response, write a natural language response:
+          const stringifiedRes = JSON.stringify(res, (_, v) =>
+            typeof v === 'bigint' ? v.toString() : v,
+          )
+
+          console.log('Response from SQL', stringifiedRes)
+
+          const nlpPrompt = `Based on the table schema below, question, SQL query, and SQL response, write a natural language response:
         ------------
         SCHEMA: ${tableInfo}
         ------------
@@ -93,47 +124,44 @@ export const jarvisRouter = router({
         ------------
         SQL QUERY: ${queryResponse.response}
         ------------
-        SQL RESPONSE: ${JSON.stringify(res, (_, v) =>
-          typeof v === 'bigint' ? v.toString() : v,
-        )}`
+        SQL RESPONSE: ${stringifiedRes}`
 
-        const nlpResponse = await OpenApiClient.chat.completions.create({
-          model: 'gpt-4',
-          messages: [{ role: 'user', content: nlpPrompt }],
-        })
+          const nlpResponse = await OpenApiClient.chat.completions.create({
+            model: 'gpt-4',
+            messages: [{ role: 'system', content: nlpPrompt }],
+          })
 
-        const parsedNlpResponse = parseOpenApiResponse(nlpResponse)
+          const parsedNlpResponse = parseOpenApiResponse(nlpResponse)
 
-        if (parsedNlpResponse.type === 'success') {
-          finalResponse = parsedNlpResponse.response
+          if (parsedNlpResponse.type === 'success') {
+            finalResponse = parsedNlpResponse.response
+          }
+        } catch (e) {
+          normaliseErrors({
+            error: e,
+            logger,
+            metadata: { queryResponse, question },
+          })
         }
-      } catch (e) {
-        normaliseErrors({
-          error: e,
-          logger,
-          metadata: { queryResponse, question },
-        })
-      }
 
-      const agentResEmbedding =
-        await generateEmbeddingFromOpenApi(finalResponse)
+        const agentResEmbedding =
+          await generateEmbeddingFromOpenApi(finalResponse)
 
-      await Promise.all([
-        chatHistoryVectorService.storeEmbedding({
-          embedding: agentResEmbedding,
-          rawMessage: finalResponse,
-          userType: 'AGENT',
-          userId,
-        }),
-        chatHistoryVectorService.storeEmbedding({
+        await chatHistoryVectorService.storeEmbedding({
           embedding: questionEmbedding,
           rawMessage: question,
           userType: 'USER',
-          userId,
-        }),
-      ])
+          conversationId,
+        })
 
-      return finalResponse
-    },
-  ),
+        await chatHistoryVectorService.storeEmbedding({
+          embedding: agentResEmbedding,
+          rawMessage: finalResponse,
+          userType: 'AGENT',
+          conversationId,
+        })
+
+        return finalResponse
+      },
+    ),
 })

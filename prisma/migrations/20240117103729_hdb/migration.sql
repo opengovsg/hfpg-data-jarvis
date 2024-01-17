@@ -2,7 +2,7 @@
 CREATE EXTENSION IF NOT EXISTS "vector";
 
 -- CreateEnum
-CREATE TYPE "ChatHistoryUser" AS ENUM ('AGENT', 'USER');
+CREATE TYPE "ChatMessageUser" AS ENUM ('AGENT', 'USER');
 
 -- CreateTable
 CREATE TABLE "hdb_resale_transaction" (
@@ -24,15 +24,26 @@ CREATE TABLE "hdb_resale_transaction" (
 );
 
 -- CreateTable
-CREATE TABLE "ChatHistory" (
+CREATE TABLE "Conversation" (
     "id" SERIAL NOT NULL,
-    "type" "ChatHistoryUser" NOT NULL,
+    "title" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "userId" TEXT NOT NULL,
+
+    CONSTRAINT "Conversation_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ChatMessage" (
+    "id" SERIAL NOT NULL,
+    "type" "ChatMessageUser" NOT NULL,
     "messageEmbedding" vector(1536),
     "rawMessage" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "conversationId" INTEGER NOT NULL,
 
-    CONSTRAINT "ChatHistory_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "ChatMessage_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -46,10 +57,13 @@ CREATE TABLE "PreviousSqlQueryToQuestion" (
 );
 
 -- CreateIndex
-CREATE INDEX "ChatHistory_userId_idx" ON "ChatHistory"("userId");
+CREATE INDEX "Conversation_userId_idx" ON "Conversation"("userId");
 
 -- CreateIndex
-CREATE INDEX "ChatHistory_createdAt_idx" ON "ChatHistory"("createdAt");
+CREATE INDEX "ChatMessage_createdAt_idx" ON "ChatMessage"("createdAt");
 
 -- AddForeignKey
-ALTER TABLE "ChatHistory" ADD CONSTRAINT "ChatHistory_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Conversation" ADD CONSTRAINT "Conversation_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChatMessage" ADD CONSTRAINT "ChatMessage_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "Conversation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

@@ -36,30 +36,41 @@ model HdbResaleTransaction {
   @@map("hdb_resale_transaction")
 }
 
-enum ChatHistoryUser {
+enum ChatMessageUser {
   AGENT
   USER
 }
 
-model ChatHistory {
-  id               Int                         @id @default(autoincrement())
-  type             ChatHistoryUser
-  messageEmbedding Unsupported("vector(1536)")?
-  rawMessage       String
+model Conversation {
+  id        Int      @id @default(autoincrement())
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
-  // TODO: Change this to have an intermedaite table of chats, right now we search all messages from a user when we should be searching from a fresh chat context
-  // This is only done for MVP
   userId String
   user   User   @relation(fields: [userId], references: [id])
 
-  createdAt DateTime @default(now())
+  chatMessages ChatMessage[]
 
   @@index([userId])
+}
+
+model ChatMessage {
+  id               Int                          @id @default(autoincrement())
+  type             ChatMessageUser
+  messageEmbedding Unsupported("vector(1536)")?
+  rawMessage       String
+
+  createdAt DateTime @default(now())
+
+  conversationId Int
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+
   @@index([createdAt])
 }
 
 model PreviousSqlQueryToQuestion {
-  id                Int                         @id @default(autoincrement())
+  id                Int                          @id @default(autoincrement())
   questionEmbedding Unsupported("vector(1536)")?
   rawQuestion       String
   sqlQuery          String
@@ -114,17 +125,17 @@ model LikedPosts {
 }
 
 model User {
-  id            String        @id @default(cuid())
+  id            String         @id @default(cuid())
   name          String?
-  username      String?       @unique
-  email         String?       @unique
-  emailVerified DateTime?     @map("email_verified")
+  username      String?        @unique
+  email         String?        @unique
+  emailVerified DateTime?      @map("email_verified")
   image         String?
   bio           String?
   posts         Post[]
   likedPosts    LikedPosts[]
   accounts      Accounts[]
-  ChatHistory   ChatHistory[]
+  conversations          Conversation[]
 }
 
 model Accounts {
