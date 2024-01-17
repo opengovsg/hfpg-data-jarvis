@@ -54,6 +54,7 @@ const Playground: NextPageWithLayout = () => {
       <form
         onSubmit={askQuestionForm.handleSubmit(async (data) => {
           askQuestionForm.reset({ question: '' })
+
           setIsLoading(true)
           chatHistory.push({
             message: data.question,

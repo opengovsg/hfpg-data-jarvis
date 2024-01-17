@@ -12,30 +12,57 @@ generator client {
   previewFeatures = ["fullTextSearch", "postgresqlExtensions"]
 }
 
+// TODO: Find a way to automatically convert all camel to snake case in the future
+// This is needed as the general PG queries from OpenAI always assumes that your column/table names are in snake case, when in reality they are in camel case, which requires double quotes to be enclosed
+// OpenAPI's response always lacks the double quotes enclosure, resulting in wrong queries
 model HdbResaleTransaction {
   identifier      Int      @id @default(autoincrement())
-  transactionDate DateTime
+  transactionDate DateTime @map("transaction_date")
   town            String
   block           String
-  streetName      String
+  streetName      String   @map("street_name")
 
   // Example StoreyRange of [0-10] would have 0 at begin and 10 at end
-  storeyRangeBegin Int
-  storeyRangeEnd   Int
+  storeyRangeBegin Int @map("storey_range_begin")
+  storeyRangeEnd   Int @map("storey_range_end")
 
-  floorAreaSquareFeet    Int
-  flatModel              String
-  flatType               String
-  leaseCommenceYear      Int
-  remainingLeaseInMonths Int
-  resalePrice            Float
+  floorAreaSquareFeet    Int    @map("floor_area_square_feet")
+  flatModel              String @map("flat_model")
+  flatType               String @map("flat_type")
+  leaseCommenceYear      Int    @map("lease_commence_year")
+  remainingLeaseInMonths Int    @map("remaining_lease_in_months")
+  resalePrice            Float  @map("resale_price")
+
+  @@map("hdb_resale_transaction")
+}
+
+enum ChatHistoryUser {
+  AGENT
+  USER
+}
+
+model ChatHistory {
+  id               Int                         @id @default(autoincrement())
+  type             ChatHistoryUser
+  messageEmbedding Unsupported("vector(1536)")?
+  rawMessage       String
+
+  // TODO: Change this to have an intermedaite table of chats, right now we search all messages from a user when we should be searching from a fresh chat context
+  // This is only done for MVP
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model PreviousSqlQueryToQuestion {
-  id       Int                      @id @default(autoincrement())
-  questionEmbedding Unsupported("vector(512)")?
-  rawQuestion String
-  sqlQuery String
+  id                Int                         @id @default(autoincrement())
+  questionEmbedding Unsupported("vector(1536)")?
+  rawQuestion       String
+  sqlQuery          String
 }
 
 model VerificationToken {
@@ -87,16 +114,17 @@ model LikedPosts {
 }
 
 model User {
-  id            String       @id @default(cuid())
+  id            String        @id @default(cuid())
   name          String?
-  username      String?      @unique
-  email         String?      @unique
-  emailVerified DateTime?    @map("email_verified")
+  username      String?       @unique
+  email         String?       @unique
+  emailVerified DateTime?     @map("email_verified")
   image         String?
   bio           String?
   posts         Post[]
   likedPosts    LikedPosts[]
   accounts      Accounts[]
+  ChatHistory   ChatHistory[]
 }
 
 model Accounts {

@@ -53,7 +53,7 @@ export const generateSampleDataPrompt = async (
   // TODO: We cannot use queryRaw due to https://github.com/prisma/prisma/discussions/12817, investigate if this is vulnerable to sql injections
   // An alternative is to have tableName to prisma object key map so we can just use prisma client to query in the future
   const rawResult = await prisma.$queryRawUnsafe(
-    `SELECT * FROM "HdbResaleTransaction" LIMIT ${nRowsLimit}`,
+    `SELECT * FROM ${tableName} LIMIT ${nRowsLimit}`,
   )
 
   if (!!rawResult && Array.isArray(rawResult) && rawResult.length !== 0) {

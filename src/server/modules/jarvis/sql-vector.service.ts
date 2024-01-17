@@ -1,5 +1,3 @@
-import '@tensorflow/tfjs'
-import { load } from '@tensorflow-models/universal-sentence-encoder'
 import { type PrismaClient } from '@prisma/client'
 import { z } from 'zod'
 import pgvector from 'pgvector/pg'
@@ -7,22 +5,13 @@ import pgvector from 'pgvector/pg'
 export const nearestEmbeddingRes = z.array(
   z.object({
     id: z.number(),
-    questionEmbedding: z.any(),
     sqlQuery: z.string(),
     rawQuestion: z.string(),
   }),
 )
 
-export class VectorStore {
+export class PreviousSqlVectorService {
   constructor(private readonly prisma: PrismaClient) {}
-
-  async generateEmbedding(sentence: string) {
-    const model = await load()
-
-    const embeddings = await model.embed(sentence)
-
-    return embeddings.arraySync()[0]!
-  }
 
   async storeEmbedding({
     embedding,
@@ -51,7 +40,7 @@ export class VectorStore {
     limit?: number
   }) {
     const top5similar =
-      await prisma.$queryRaw`SELECT id, "questionEmbedding"::text, "rawQuestion", "sqlQuery"
+      await prisma.$queryRaw`SELECT id, "rawQuestion", "sqlQuery"
     FROM "PreviousSqlQueryToQuestion" ORDER BY "questionEmbedding" <-> ${pgvector.toSql(
       embedding,
     )}::vector 

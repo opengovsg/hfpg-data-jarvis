@@ -11,5 +11,5 @@ export const queryColumnsResSchema = z.array(
 export type QueryColumnsRes = z.infer<typeof queryColumnsResSchema>
 
 // TODO: Add test to verify table names exist, right now we manually sync these table names with our migration.
-export const VALID_TABLE_NAMES = ['HdbResaleTransaction'] as const
+export const VALID_TABLE_NAMES = ['hdb_resale_transaction'] as const
 export type ValidTableName = (typeof VALID_TABLE_NAMES)[number]

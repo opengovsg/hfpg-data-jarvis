@@ -1,135 +1,139 @@
 import { protectedProcedure, router } from '~/server/trpc'
-import { getTableInfo } from '../langchain/sql/getTablePrompt'
-import { PromptTemplate } from '@langchain/core/prompts'
-import { RunnableSequence } from '@langchain/core/runnables'
-import { ChatOpenAI } from '@langchain/openai'
-import { StringOutputParser } from '@langchain/core/output_parsers'
-import { env } from '~/env.mjs'
+import { getTableInfo } from '../prompt/sql/getTablePrompt'
 import { askQuestionSchema } from './jarvis.schema'
 
-import { VectorStore } from './VectorStore'
-import { getSimilarSqlStatementsPrompt } from '../langchain/sql/sql.utils'
+import { PreviousSqlVectorService } from './sql-vector.service'
+import { getSimilarSqlStatementsPrompt } from '../prompt/sql/sql.utils'
+import { generateEmbeddingFromOpenApi } from './vector.utils'
+import { ChatHistoryVectorService } from './chat-history.service'
+import { OpenApiClient } from './open-api.service'
+import { normaliseErrors, parseOpenApiResponse } from './jarvis.utils'
+
+const UNABLE_TO_FIND_ANSWER_MESSAGE = `I am unable to find the answer, please try again.`
 
 export const jarvisRouter = router({
-  get: protectedProcedure
-    .input(askQuestionSchema)
-    .query(async ({ ctx: { prisma }, input: { question } }) => {
-      const vectorStore = new VectorStore(prisma)
+  get: protectedProcedure.input(askQuestionSchema).query(
+    async ({
+      ctx: {
+        prisma,
+        logger,
+        user: { id: userId },
+      },
+      input: { question },
+    }) => {
+      const sqlVectorService = new PreviousSqlVectorService(prisma)
+      const chatHistoryVectorService = new ChatHistoryVectorService(prisma)
 
-      const embedding = await vectorStore.generateEmbedding(question)
+      const questionEmbedding = await generateEmbeddingFromOpenApi(question)
 
-      const nearestEmbeddings = await vectorStore.findNearestEmbeddings({
-        embedding,
-      })
+      const nearestSqlEmbeddings = await sqlVectorService.findNearestEmbeddings(
+        {
+          embedding: questionEmbedding,
+        },
+      )
 
       const similarSqlStatementPrompt =
-        getSimilarSqlStatementsPrompt(nearestEmbeddings)
+        getSimilarSqlStatementsPrompt(nearestSqlEmbeddings)
 
-      console.log(
-        'Retrieved similar sql statements: ',
-        similarSqlStatementPrompt,
-      )
+      // const chatHistoryParams = getChatHistoryParams(latest5ChatHistory)
 
-      const llm = new ChatOpenAI({ openAIApiKey: env.OPEN_API_KEY })
+      const tableInfo = await getTableInfo('hdb_resale_transaction', prisma)
 
-      const prompt =
-        PromptTemplate.fromTemplate(`You are a PostgreSQL expert. Based on the provided SQL table schema below, write a PostgreSQL query that would answer the user's question.
+      const preamble = `You are an AI Chatbot specialised in PostgresQL. Based on the provided SQL table schema below, write a PostgreSQL query that would answer the user's question.
 
-              Never query for all columns from a table. You must query only the columns that are needed to answer the question. You must wrap each column name in double quotes (") to denote them as delimited identifiers.
+      Never query for all columns from a table. You must query only the columns that are needed to answer the question.
       Pay attention to use only the column names you can see in the tables below. Be careful to not query for columns that do not exist. Also, pay attention to which column is in which table.
 
-      ${similarSqlStatementPrompt}
-
       ------------
-      SCHEMA: {schema}
+      SCHEMA: ${tableInfo}
       ------------
-      QUESTION: {question}
+      SIMILAR SQL STATEMENTS: ${similarSqlStatementPrompt}
       ------------
-      SQL QUERY:`)
 
-      // TODO: This prompt seems p shitty, but ill just use it since its from langchain, to experiment own prompts in the future
-      const sqlQueryChain = RunnableSequence.from([
-        {
-          schema: async () =>
-            await getTableInfo('HdbResaleTransaction', prisma),
-          question: () => question,
-        },
-        prompt,
-        llm.bind({ stop: ['SQLQuery:\n'] }),
-        new StringOutputParser(),
-      ])
+      If you do not have the answer, please respond with: ${UNABLE_TO_FIND_ANSWER_MESSAGE}
 
-      const generatedQuery = await sqlQueryChain.invoke({ question })
-      console.log('Generated Query: ', generatedQuery)
+      Return only the SQL query and nothing else.
+      `
 
-      const fixPostgresPrompt = PromptTemplate.fromTemplate(
-        `Can you fix the PostgreSQL query below by enclosing all column names in double quotes (")
-
-              -------------
-              QUERY: {query}
-              ------------
-      SQL QUERY:`,
-      )
-
-      const fixedQueryChain = RunnableSequence.from([
-        {
-          query: () => generatedQuery,
-        },
-        fixPostgresPrompt,
-        llm.bind({ stop: ['SQLQuery:\n'] }),
-        new StringOutputParser(),
-      ])
-
-      const fixedQuery = await fixedQueryChain.invoke({ query: generatedQuery })
-
-      console.log('Fixed query: ', fixedQuery)
-
-      const finalResponsePrompt =
-        PromptTemplate.fromTemplate(`Based on the table schema below, question, SQL query, and SQL response, write a natural language response:
-          ------------
-          SCHEMA: {schema}
-          ------------
-          QUESTION: {question}
-          ------------
-          SQL QUERY: {query}
-          ------------
-          SQL RESPONSE: {response}
-          ------------
-          NATURAL LANGUAGE RESPONSE:`)
-
-      /**
-       * Create a new RunnableSequence where we pipe the output from the previous chain, the users question,
-       * and the SQL query, into the prompt template, and then into the llm.
-       * Using the result from the `sqlQueryChain` we can run the SQL query via `db.run(input.query)`.
-       */
-      const finalChain = RunnableSequence.from([
-        {
-          question: () => question,
-          query: fixedQueryChain,
-        },
-        {
-          schema: async () =>
-            await getTableInfo('HdbResaleTransaction', prisma),
-          question: () => question,
-          query: (input) => input.query,
-          // TODO: Explore if there are vulnerabilities here
-          response: async (input) => {
-            const res = await prisma.$queryRawUnsafe(input.query)
-            console.log('Response after executing query: ', res)
-            return JSON.stringify(res, (_, v) =>
-              typeof v === 'bigint' ? v.toString() : v,
-            )
+      const response = await OpenApiClient.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          {
+            role: 'system',
+            content: preamble,
           },
-        },
-        finalResponsePrompt,
-        llm,
-        new StringOutputParser(),
-      ])
-
-      const finalResponse = await finalChain.invoke({
-        question: 'How many employees are there?',
+          // TODO: Chat history seems to cause model to hallucinate, to add this at a later date
+          // ...chatHistoryParams,
+          {
+            role: 'user',
+            content: question,
+          },
+        ],
       })
 
+      const queryResponse = parseOpenApiResponse(response)
+      let finalResponse = UNABLE_TO_FIND_ANSWER_MESSAGE
+
+      if (
+        queryResponse.type === 'failure' ||
+        queryResponse.response === UNABLE_TO_FIND_ANSWER_MESSAGE
+      ) {
+        return UNABLE_TO_FIND_ANSWER_MESSAGE
+      }
+
+      try {
+        console.log('Generated query: ', queryResponse.response)
+        const res = await prisma.$queryRawUnsafe(queryResponse.response)
+
+        const nlpPrompt = `Based on the table schema below, question, SQL query, and SQL response, write a natural language response:
+        ------------
+        SCHEMA: ${tableInfo}
+        ------------
+        QUESTION: ${question}
+        ------------
+        SQL QUERY: ${queryResponse.response}
+        ------------
+        SQL RESPONSE: ${JSON.stringify(res, (_, v) =>
+          typeof v === 'bigint' ? v.toString() : v,
+        )}`
+
+        const nlpResponse = await OpenApiClient.chat.completions.create({
+          model: 'gpt-4',
+          messages: [{ role: 'user', content: nlpPrompt }],
+        })
+
+        const parsedNlpResponse = parseOpenApiResponse(nlpResponse)
+
+        if (parsedNlpResponse.type === 'success') {
+          finalResponse = parsedNlpResponse.response
+        }
+      } catch (e) {
+        normaliseErrors({
+          error: e,
+          logger,
+          metadata: { queryResponse, question },
+        })
+      }
+
+      const agentResEmbedding =
+        await generateEmbeddingFromOpenApi(finalResponse)
+
+      await Promise.all([
+        chatHistoryVectorService.storeEmbedding({
+          embedding: agentResEmbedding,
+          rawMessage: finalResponse,
+          userType: 'AGENT',
+          userId,
+        }),
+        chatHistoryVectorService.storeEmbedding({
+          embedding: questionEmbedding,
+          rawMessage: question,
+          userType: 'USER',
+          userId,
+        }),
+      ])
+
       return finalResponse
-    }),
+    },
+  ),
 })
