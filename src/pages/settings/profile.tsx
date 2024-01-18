@@ -31,9 +31,9 @@ import { BackBannerLink } from '~/components/BackBannerLink'
 import { ResponsiveButton } from '~/components/ResponsiveButton'
 import { APP_GRID_COLUMN, APP_GRID_TEMPLATE_COLUMN } from '~/constants/layouts'
 import { useMe } from '~/features/me/api'
-import { PROFILE } from '~/lib/routes'
 import { AppGrid } from '~/templates/AppGrid'
 import { registerWithDebounce } from '~/utils/registerWithDebounce'
+import { HOME } from '~/lib/routes'
 
 const Profile: NextPageWithLayout = () => {
   const { me } = useMe()
@@ -126,11 +126,8 @@ const Profile: NextPageWithLayout = () => {
         py="1rem"
         px={{ base: '1rem', lg: 0 }}
       >
-        <BackBannerLink
-          gridColumn={APP_GRID_COLUMN}
-          href={`${PROFILE}/${me?.username}`}
-        >
-          Back to your profile
+        <BackBannerLink gridColumn={APP_GRID_COLUMN} href={`/${HOME}`}>
+          Back to home
         </BackBannerLink>
       </AppGrid>
       <AppGrid

@@ -7,7 +7,11 @@ import { getSimilarSqlStatementsPrompt } from '../prompt/sql/sql.utils'
 import { generateEmbeddingFromOpenApi } from './vector.utils'
 import { ChatMessageVectorService } from './chat-history.service'
 import { OpenApiClient } from './open-api.service'
-import { normaliseErrors, parseOpenApiResponse } from './jarvis.utils'
+import {
+  generateResponseFromErrors,
+  assertValidAndInexpensiveQuery,
+  parseOpenApiResponse,
+} from './jarvis.utils'
 
 const UNABLE_TO_FIND_ANSWER_MESSAGE = `I am unable to find the answer, please try again.`
 
@@ -52,6 +56,13 @@ export const jarvisRouter = router({
 
         const questionEmbedding = await generateEmbeddingFromOpenApi(question)
 
+        await chatHistoryVectorService.storeEmbedding({
+          embedding: questionEmbedding,
+          rawMessage: question,
+          userType: 'USER',
+          conversationId,
+        })
+
         const nearestSqlEmbeddings =
           await sqlVectorService.findNearestEmbeddings({
             embedding: questionEmbedding,
@@ -75,8 +86,6 @@ export const jarvisRouter = router({
       SIMILAR SQL STATEMENTS: ${similarSqlStatementPrompt}
       ------------
 
-      If you do not have the answer, please respond with: ${UNABLE_TO_FIND_ANSWER_MESSAGE}
-
       Return only the SQL query and nothing else.
       `
 
@@ -96,7 +105,10 @@ export const jarvisRouter = router({
           ],
         })
 
-        const queryResponse = parseOpenApiResponse(response)
+        const queryResponse = parseOpenApiResponse(
+          preamble + question,
+          response,
+        )
         let finalResponse = UNABLE_TO_FIND_ANSWER_MESSAGE
 
         if (
@@ -107,8 +119,12 @@ export const jarvisRouter = router({
         }
 
         try {
-          console.log('Generated query: ', queryResponse.response)
-          const res = await prisma.$queryRawUnsafe(queryResponse.response)
+          const query = queryResponse.response
+          console.log('Generated query: ', query)
+
+          await assertValidAndInexpensiveQuery(query, prisma)
+
+          const res = await prisma.$queryRawUnsafe(query)
 
           const stringifiedRes = JSON.stringify(res, (_, v) =>
             typeof v === 'bigint' ? v.toString() : v,
@@ -122,7 +138,7 @@ export const jarvisRouter = router({
         ------------
         QUESTION: ${question}
         ------------
-        SQL QUERY: ${queryResponse.response}
+        SQL QUERY: ${query}
         ------------
         SQL RESPONSE: ${stringifiedRes}`
 
@@ -131,13 +147,13 @@ export const jarvisRouter = router({
             messages: [{ role: 'system', content: nlpPrompt }],
           })
 
-          const parsedNlpResponse = parseOpenApiResponse(nlpResponse)
+          const parsedNlpResponse = parseOpenApiResponse(nlpPrompt, nlpResponse)
 
           if (parsedNlpResponse.type === 'success') {
             finalResponse = parsedNlpResponse.response
           }
         } catch (e) {
-          normaliseErrors({
+          finalResponse = generateResponseFromErrors({
             error: e,
             logger,
             metadata: { queryResponse, question },
@@ -146,13 +162,6 @@ export const jarvisRouter = router({
 
         const agentResEmbedding =
           await generateEmbeddingFromOpenApi(finalResponse)
-
-        await chatHistoryVectorService.storeEmbedding({
-          embedding: questionEmbedding,
-          rawMessage: question,
-          userType: 'USER',
-          conversationId,
-        })
 
         await chatHistoryVectorService.storeEmbedding({
           embedding: agentResEmbedding,
