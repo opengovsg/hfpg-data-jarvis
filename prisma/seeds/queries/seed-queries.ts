@@ -10,6 +10,18 @@ export const seedQueries = async () => {
       sqlQuery: `SELECT AVG("resale_price") FROM hdb_resale_transaction;`,
     },
     {
+      rawQuestion: `When did the most expensive transaction in Clementi occur?`,
+      sqlQuery: `SELECT
+          transaction_date
+        FROM
+          hdb_resale_transaction
+        WHERE
+          town = 'CLEMENTI'
+        ORDER BY
+          resale_price DESC
+        LIMIT 1;`,
+    },
+    {
       rawQuestion:
         'What was the average lease duration (in months) of flats sold?',
       sqlQuery: `SELECT AVG(remaining_lease_in_months) FROM hdb_resale_transaction;`,
