@@ -56,12 +56,24 @@ export const jarvisRouter = router({
 
         const questionEmbedding = await generateEmbeddingFromOpenApi(question)
 
-        await chatHistoryVectorService.storeEmbedding({
+        await chatHistoryVectorService.storeMessage({
           embedding: questionEmbedding,
           rawMessage: question,
           userType: 'USER',
           conversationId,
         })
+
+        if (question.length < 10) {
+          const res = `Please enter a question longer than 10 characters`
+
+          await chatHistoryVectorService.storeMessage({
+            rawMessage: res,
+            userType: 'AGENT',
+            conversationId,
+          })
+
+          return res
+        }
 
         const nearestSqlEmbeddings =
           await sqlVectorService.findNearestEmbeddings({
@@ -163,7 +175,7 @@ export const jarvisRouter = router({
         const agentResEmbedding =
           await generateEmbeddingFromOpenApi(finalResponse)
 
-        await chatHistoryVectorService.storeEmbedding({
+        await chatHistoryVectorService.storeMessage({
           embedding: agentResEmbedding,
           rawMessage: finalResponse,
           userType: 'AGENT',

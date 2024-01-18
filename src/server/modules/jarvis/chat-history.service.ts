@@ -16,20 +16,21 @@ export type ChatMessageEmbeddingRes = z.infer<typeof chatMessageEmbeddingRes>
 export class ChatMessageVectorService {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async storeEmbedding({
+  async storeMessage({
     embedding,
     rawMessage,
     conversationId,
     userType,
     prisma = this.prisma,
   }: {
-    embedding: number[]
+    embedding?: number[]
     rawMessage: string
     userType: ChatMessageUser
     conversationId: number
     prisma?: PrismaClient
   }) {
-    await prisma.$queryRaw`INSERT INTO 
+    if (!!embedding) {
+      await prisma.$queryRaw`INSERT INTO 
     "ChatMessage" ("messageEmbedding", "rawMessage", "type", "conversationId") 
     VALUES 
       (
@@ -38,6 +39,11 @@ export class ChatMessageVectorService {
         cast(${userType} as "ChatMessageUser"), 
         ${conversationId}
       );`
+    } else {
+      await prisma.chatMessage.create({
+        data: { conversationId, type: userType, rawMessage },
+      })
+    }
   }
 
   // TODO: Approximate token count of built prompt, then only add in chat history until before the token window

@@ -118,6 +118,13 @@ const ChatWindow = () => {
           >
             <InputGroup alignItems="center">
               <Textarea
+                onKeyDown={async (e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+
+                    await handleSubmitData(askQuestionForm.getValues())
+                  }
+                }}
                 bgColor="transparent"
                 minH="unset"
                 border="0px"

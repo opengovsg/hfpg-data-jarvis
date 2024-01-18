@@ -23,7 +23,6 @@ export function generateResponseFromErrors({
   logger: Logger<string>
 }): string {
   logger.warn({ metadata, error }, 'Error occurred')
-  console.log('>> error', error)
 
   if (error instanceof TokenExceededError) {
     return 'The data returned from your question was too long to be comprehensible. Please try aggregating or adding filters to your search.'
