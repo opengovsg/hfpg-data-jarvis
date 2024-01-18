@@ -124,7 +124,9 @@ const ChatWindow = () => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault()
 
-                    await handleSubmitData(askQuestionForm.getValues())
+                    if (!isGeneratingResponse) {
+                      await handleSubmitData(askQuestionForm.getValues())
+                    }
                   }
                 }}
                 bgColor="transparent"
