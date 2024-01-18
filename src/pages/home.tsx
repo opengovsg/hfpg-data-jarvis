@@ -7,7 +7,7 @@ import { type NextPageWithLayout } from '~/lib/types'
 
 const Home: NextPageWithLayout = () => {
   return (
-    <HStack h={'$100vh'}>
+    <HStack h={'$100vh'} w="100vw">
       <HistoricChatMenu />
       <ChatWindow />
     </HStack>

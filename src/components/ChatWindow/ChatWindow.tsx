@@ -81,10 +81,12 @@ const ChatWindow = () => {
       onSubmit={askQuestionForm.handleSubmit(async (data) => {
         await handleSubmitData(data)
       })}
+      style={{ width: '100%', height: '100%' }}
     >
       <Grid
         gridTemplateRows={`1fr min-content`}
-        maxH="100vh"
+        h="100%"
+        w="100%"
         px={8}
         bgColor="base.canvas.brand-subtle"
       >
