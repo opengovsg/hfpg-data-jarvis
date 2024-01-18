@@ -62,7 +62,13 @@ export const MessageBox = ({
   return (
     <HStack align="end" spacing={5}>
       <WatsonIcon />
-      <HStack border="1px" borderColor="gray.200" p={4} borderRadius="8px">
+      <HStack
+        border="1px"
+        borderColor="interaction.main-subtle.default"
+        bgColor="white"
+        p={4}
+        borderRadius="8px"
+      >
         <Spinner />
         <Text>{message}</Text>
       </HStack>
