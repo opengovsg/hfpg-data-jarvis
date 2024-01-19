@@ -1,5 +1,6 @@
 -- CreateExtension
 CREATE EXTENSION IF NOT EXISTS "vector";
+CREATE EXTENSION IF NOT EXISTS postgis;
 
 -- CreateEnum
 CREATE TYPE "ChatMessageUser" AS ENUM ('AGENT', 'USER');
@@ -19,6 +20,8 @@ CREATE TABLE "hdb_resale_transaction" (
     "lease_commence_year" INTEGER NOT NULL,
     "remaining_lease_in_months" INTEGER NOT NULL,
     "resale_price" DOUBLE PRECISION NOT NULL,
+    "latitude" DOUBLE PRECISION NOT NULL,
+    "longitude" DOUBLE PRECISION NOT NULL,
 
     CONSTRAINT "hdb_resale_transaction_pkey" PRIMARY KEY ("identifier")
 );

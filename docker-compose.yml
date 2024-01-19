@@ -1,8 +1,10 @@
 version: '3'
 
 services:
-  jarvis-postgres:
-    image: ankane/pgvector
+  watson-postgres:
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - 5430:5432
     environment:

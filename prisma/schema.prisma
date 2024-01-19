@@ -32,6 +32,8 @@ model HdbResaleTransaction {
   leaseCommenceYear      Int    @map("lease_commence_year")
   remainingLeaseInMonths Int    @map("remaining_lease_in_months")
   resalePrice            Float  @map("resale_price")
+  latitude               Float  @map("latitude")
+  longitude              Float  @map("longitude")
 
   @@map("hdb_resale_transaction")
 }

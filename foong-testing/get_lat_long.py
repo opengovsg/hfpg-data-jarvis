@@ -19,7 +19,7 @@ for street_name in unique_street:
     print(new_row)
     lat_long_df = lat_long_df._append(new_row, ignore_index=True)
     
-lat_long_df.to_csv('street_lat_long.csv')
+# lat_long_df.to_csv('street_lat_long.csv', index=False)
 
-# merged_df = pd.merge(resale_df, lat_long_df, on='street_name', how='left') 
-# merged_df.to_csv('resale_flat_price_w_lat_long')
+merged_df = pd.merge(resale_df, lat_long_df, on='street_name', how='left') 
+merged_df.to_csv('resale_flat_price_w_lat_long.csv', index=False)

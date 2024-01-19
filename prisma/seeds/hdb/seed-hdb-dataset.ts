@@ -5,7 +5,7 @@ import { createReadStream } from 'node:fs'
 import Papa from 'papaparse'
 import { prisma } from '~/server/prisma'
 
-const filePaths = ['fixtures/resale-flats-after-jan-2017.csv']
+const filePaths = ['fixtures/resale-flats-after-jan-2017-w-latlong.csv']
 
 const rawCsvResaleFlatSchema = z.object({
   month: z.coerce.date(),
@@ -19,6 +19,8 @@ const rawCsvResaleFlatSchema = z.object({
   lease_commence_date: z.coerce.number(),
   remaining_lease: z.string(),
   resale_price: z.coerce.number(),
+  latitude: z.coerce.number(),
+  longitude: z.coerce.number(),
 })
 
 type RawCsvResaleFlatShape = z.infer<typeof rawCsvResaleFlatSchema>
@@ -92,6 +94,8 @@ const parseRawDataRowIntoCreateInput = (
     streetName: rawRow.street_name,
     town: rawRow.town,
     transactionDate: rawRow.month,
+    latitude: rawRow.latitude,
+    longitude: rawRow.longitude,
   }
 }
 

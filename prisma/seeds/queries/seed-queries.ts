@@ -92,6 +92,27 @@ export const seedQueries = async () => {
       transactionMonth,
       transactionYear;`,
     },
+    {
+      rawQuestion:
+        'What is the distance between bishan and ang mo kio?',
+      sqlQuery: `SELECT
+      ST_DistanceSphere(
+        (SELECT 
+            ST_SetSRID(ST_MakePoint(longitude, latitude), 4326) 
+         FROM 
+            hdb_resale_transaction 
+         WHERE 
+            town = 'BISHAN'
+         LIMIT 1),
+        (SELECT 
+            ST_SetSRID(ST_MakePoint(longitude, latitude), 4326) 
+         FROM 
+            hdb_resale_transaction 
+         WHERE 
+            town = 'ANG MO KIO' 
+         LIMIT 1)
+    ) / 1000 AS distance_in_km;`,
+    },
   ]
 
   const vectorStore = new PreviousSqlVectorService(prisma)
