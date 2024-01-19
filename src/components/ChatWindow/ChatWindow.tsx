@@ -6,26 +6,38 @@ import {
   InputGroup,
   Textarea,
   Grid,
+  FormControl,
 } from '@chakra-ui/react'
 import ResizeTextarea from 'react-textarea-autosize'
 import _ from 'lodash'
 import { useEffect, useRef, useState } from 'react'
 import { BiSend } from 'react-icons/bi'
 import { useZodForm } from '~/lib/form'
-import { askQuestionSchema } from '~/server/modules/jarvis/jarvis.schema'
-// import { AdminLayout } from '~/templates/layouts/AdminLayout'
-import { type RouterInput, trpc } from '~/utils/trpc'
-import { MessageBox } from './MessageBox'
+import { trpc } from '~/utils/trpc'
+import { MessageBox, type MessageBoxProps } from './MessageBox'
+import { useCallWatson } from './chat-window.hooks'
+import { getWatsonRequestSchema } from '~/utils/watson'
+import { type z } from 'zod'
+import { FormErrorMessage } from '@opengovsg/design-system-react'
 
 const ChatWindow = () => {
-  const utils = trpc.useContext()
-
   const [conversation] = trpc.jarvis.getConversation.useSuspenseQuery()
-  const getAnswerMutation = trpc.jarvis.getAnswer.useMutation()
   const [isGeneratingResponse, setIsGeneratingResponse] = useState(false)
+  const [isInputDisabled, setIsInputDisabled] = useState(false)
+
+  // TODO: List virtualisation in the future
+  const [storedConversation, setStoredConversation] = useState<
+    ({ id: string } & MessageBoxProps)[]
+  >(
+    conversation.chatMessages.map((msg) => ({
+      ...msg,
+      id: msg.id.toString(),
+      message: msg.rawMessage,
+    })),
+  )
 
   const askQuestionForm = useZodForm({
-    schema: askQuestionSchema,
+    schema: getWatsonRequestSchema,
     defaultValues: {
       question: '',
       conversationId: conversation.conversationId,
@@ -38,42 +50,71 @@ const ChatWindow = () => {
     if (!!chatWindowRef.current) {
       chatWindowRef.current.scrollTo(0, chatWindowRef.current.scrollHeight)
     }
-  }, [conversation])
+  }, [storedConversation])
 
-  const handleSubmitData = async (data: RouterInput['jarvis']['getAnswer']) => {
+  const callWatson = useCallWatson({
+    handleChunk: (chunk) => {
+      setIsGeneratingResponse(false)
+
+      setStoredConversation((prev) => {
+        // find last index of agent message
+        const lastIndexValue = prev[prev.length - 1]
+
+        // This should never happen
+        if (lastIndexValue === undefined) {
+          throw new Error(
+            'Last index should always be defined when handling chunks',
+          )
+        }
+
+        // This means we have yet to process first chunk from agent response
+        if (lastIndexValue.type === 'USER') {
+          return [
+            ...prev,
+            {
+              type: 'AGENT',
+              id: _.uniqueId(),
+              message: chunk,
+            },
+          ]
+        }
+
+        // Append to the last chunk in the chat response
+        // TODO: Only render latest chat message in the dom instead of re-rendering entire patch on each chunk
+        return [
+          ...prev.slice(0, prev.length - 1),
+          {
+            ...lastIndexValue,
+            message: lastIndexValue.message + chunk,
+          },
+        ]
+      })
+    },
+  })
+
+  const handleSubmitData = async (
+    data: z.infer<typeof getWatsonRequestSchema>,
+  ) => {
     askQuestionForm.reset({
       question: '',
       conversationId: conversation.conversationId,
     })
 
     setIsGeneratingResponse(true)
+    setIsInputDisabled(true)
 
-    // Optimistic update so we can see user's question immediately in the chatbox
-    utils.jarvis.getConversation.setData(undefined, (oldData) => {
-      if (oldData) {
-        return {
-          conversationId: oldData.conversationId,
-          chatMessages: [
-            ...oldData.chatMessages,
-            {
-              createdAt: new Date(),
-              // -1 will never be set as an id in the database, we later invalidate this query so the optimistic id will be reset to the correct one in the database
-              id: -1,
-              rawMessage: data.question,
-              type: 'USER',
-            },
-          ],
-        }
-      }
+    setStoredConversation((prev) => [
+      ...prev,
+      {
+        id: _.uniqueId(),
+        message: data.question,
+        type: 'USER',
+      },
+    ])
 
-      return oldData
-    })
+    await callWatson(data)
 
-    await getAnswerMutation.mutateAsync(data)
-
-    await utils.jarvis.getConversation.invalidate()
-
-    setIsGeneratingResponse(false)
+    setIsInputDisabled(false)
   }
 
   return (
@@ -97,16 +138,19 @@ const ChatWindow = () => {
           pt={8}
           overflowY="scroll"
         >
-          {conversation.chatMessages.map((chatMsg) => (
+          {storedConversation.map((chatMsg) => (
             <MessageBox
               key={chatMsg.id}
               type={chatMsg.type}
-              message={chatMsg.rawMessage}
+              message={chatMsg.message}
             />
           ))}
 
           {isGeneratingResponse && (
-            <MessageBox type={'LOADING-RESPONSE'} message={'Me thinking'} />
+            <MessageBox
+              type={'LOADING-RESPONSE'}
+              message={'Churning insights...'}
+            />
           )}
         </VStack>
 
@@ -118,37 +162,44 @@ const ChatWindow = () => {
             borderRadius="8px"
             w="100%"
           >
-            <InputGroup alignItems="center">
-              <Textarea
-                onKeyDown={async (e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault()
+            <FormControl
+              isInvalid={!!askQuestionForm.formState.errors.question?.message}
+            >
+              <InputGroup alignItems="center">
+                <Textarea
+                  onKeyDown={async (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
 
-                    if (!isGeneratingResponse) {
-                      await handleSubmitData(askQuestionForm.getValues())
+                      if (!isInputDisabled) {
+                        await handleSubmitData(askQuestionForm.getValues())
+                      }
                     }
-                  }
-                }}
-                bgColor="transparent"
-                minH="unset"
-                border="0px"
-                _focusVisible={{ boxShadow: '0px' }}
-                overflow="hidden"
-                resize="none"
-                minRows={1}
-                overflowY="scroll"
-                maxRows={5}
-                as={ResizeTextarea}
-                {...askQuestionForm.register('question')}
-              />
-              <IconButton
-                variant="clear"
-                isDisabled={isGeneratingResponse}
-                type="submit"
-                icon={<BiSend />}
-                aria-label={'send-jarvis'}
-              />
-            </InputGroup>
+                  }}
+                  bgColor="transparent"
+                  minH="unset"
+                  border="0px"
+                  _focusVisible={{ boxShadow: '0px' }}
+                  overflow="hidden"
+                  resize="none"
+                  minRows={1}
+                  overflowY="scroll"
+                  maxRows={5}
+                  as={ResizeTextarea}
+                  {...askQuestionForm.register('question')}
+                />
+                <IconButton
+                  variant="clear"
+                  isDisabled={isInputDisabled}
+                  type="submit"
+                  icon={<BiSend />}
+                  aria-label={'send-jarvis'}
+                />
+              </InputGroup>
+              <FormErrorMessage>
+                {askQuestionForm.formState.errors.question?.message}
+              </FormErrorMessage>
+            </FormControl>
           </Box>
 
           <Text textStyle="caption-2">

@@ -1,8 +1,8 @@
 import { type PrismaClient } from '@prisma/client'
 import { type ChatCompletion } from 'openai/resources'
-import { type Logger } from 'pino'
 import { z } from 'zod'
 import {
+  ClientInputError,
   ExpensiveError,
   MalformedError,
   TokenExceededError,
@@ -16,13 +16,12 @@ import {
 export function generateResponseFromErrors({
   error,
   metadata,
-  logger,
 }: {
   error: unknown
   metadata: object
-  logger: Logger<string>
 }): string {
-  logger.warn({ metadata, error }, 'Error occurred')
+  // TODO: Find a way to have a pino logger for this
+  console.warn({ metadata, error }, 'Error occurred')
 
   if (error instanceof TokenExceededError) {
     return 'The data returned from your question was too long to be comprehensible. Please try aggregating or adding filters to your search.'
@@ -30,6 +29,10 @@ export function generateResponseFromErrors({
 
   if (error instanceof ExpensiveError) {
     return `It took too long to get data for your question. Please try adding filters to your question to narrow down your search.`
+  }
+
+  if (error instanceof ClientInputError) {
+    return error.message
   }
 
   // TODO: This just means the response could be something other than an SQL query

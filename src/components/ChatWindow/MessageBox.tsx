@@ -14,13 +14,12 @@ const WatsonIcon = () => {
   )
 }
 
-export const MessageBox = ({
-  message,
-  type,
-}: {
+export type MessageBoxProps = {
   message: string
   type: 'AGENT' | 'USER' | 'LOADING-RESPONSE'
-}) => {
+}
+
+export const MessageBox = ({ message, type }: MessageBoxProps) => {
   const {
     me: { name },
   } = useMe()
