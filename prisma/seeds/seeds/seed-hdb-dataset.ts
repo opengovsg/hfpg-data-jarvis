@@ -19,6 +19,8 @@ const rawCsvResaleFlatSchema = z.object({
   lease_commence_date: z.coerce.number(),
   remaining_lease: z.string(),
   resale_price: z.coerce.number(),
+  latitude: z.coerce.number(),
+  longitude: z.coerce.number(),
 })
 
 type RawCsvResaleFlatShape = z.infer<typeof rawCsvResaleFlatSchema>
@@ -93,6 +95,8 @@ const parseRawDataRowIntoCreateInput = (
     streetName: rawRow.street_name,
     town: rawRow.town,
     transactionDate: rawRow.month,
+    latitude: rawRow.latitude,
+    longitude: rawRow.longitude,
   }
 }
 
