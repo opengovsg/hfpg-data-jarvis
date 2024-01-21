@@ -133,7 +133,9 @@ export function assertReadOnlyValidTablesAccess(query: string) {
     if (statementTypes.size > 0) {
       throw new UnauthorisedDbAccess(
         query,
-        `Query contains non-read operations of: ${statementTypes}`,
+        `Query contains non-read operations of: [${[...statementTypes].join(
+          ', ',
+        )}]`,
       )
     }
 
