@@ -1,6 +1,23 @@
-export class MalformedError extends Error {
-  constructor(sqlQuery: string) {
-    super(`Malformed query: ${sqlQuery}`)
+/** Throw this error is the query is invalid */
+export class InvalidQueryError extends Error {
+  constructor(sqlQuery: string, customMessage?: string) {
+    const msg = `Invalid query: ${sqlQuery}`
+
+    if (!!customMessage) {
+      msg.concat(customMessage)
+    }
+
+    super(msg)
+  }
+
+  toJSON() {
+    return this.message
+  }
+}
+
+export class UnauthorisedDbAccess extends Error {
+  constructor(sqlQuery: string, message: string) {
+    super(`Unauthorised query: ${sqlQuery}, message: ${message}`)
   }
 
   toJSON() {

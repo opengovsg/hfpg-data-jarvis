@@ -1,6 +1,6 @@
 import { type Prisma } from '@prisma/client'
-import { PreviousSqlVectorService } from '~/server/modules/jarvis/sql-vector.service'
-import { generateEmbeddingFromOpenApi } from '~/server/modules/jarvis/vector.utils'
+import { PreviousSqlVectorService } from '~/server/modules/watson/sql-vector.service'
+import { generateEmbeddingFromOpenApi } from '~/server/modules/watson/vector.utils'
 import { prisma } from '~/server/prisma'
 
 export const seedQueries = async () => {
@@ -93,8 +93,7 @@ export const seedQueries = async () => {
       transactionYear;`,
     },
     {
-      rawQuestion:
-        'What is the distance between bishan and ang mo kio?',
+      rawQuestion: 'What is the distance between bishan and ang mo kio?',
       sqlQuery: `SELECT
       ST_DistanceSphere(
         (SELECT 

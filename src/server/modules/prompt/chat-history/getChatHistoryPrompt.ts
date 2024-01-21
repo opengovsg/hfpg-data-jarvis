@@ -1,5 +1,5 @@
 import type { OpenAI } from 'openai'
-import { type ChatMessageEmbeddingRes } from '../../jarvis/chat-history.service'
+import { type ChatMessageEmbeddingRes } from '../../watson/chat-history.service'
 
 // export const getChatHistoryPrompt = (
 //   chatHistory: ChatHistoryEmbeddingRes,

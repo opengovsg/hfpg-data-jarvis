@@ -1,6 +1,6 @@
 import { protectedProcedure, router } from '~/server/trpc'
 
-export const jarvisRouter = router({
+export const watsonRouter = router({
   getConversation: protectedProcedure.query(
     async ({ ctx: { prisma, user } }) => {
       // TODO: Change this when we support multiple conversations

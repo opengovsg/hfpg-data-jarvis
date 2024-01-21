@@ -21,7 +21,7 @@ import { type z } from 'zod'
 import { FormErrorMessage } from '@opengovsg/design-system-react'
 
 const ChatWindow = () => {
-  const [conversation] = trpc.jarvis.getConversation.useSuspenseQuery()
+  const [conversation] = trpc.watson.getConversation.useSuspenseQuery()
   const [isGeneratingResponse, setIsGeneratingResponse] = useState(false)
   const [isInputDisabled, setIsInputDisabled] = useState(false)
 

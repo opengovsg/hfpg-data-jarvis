@@ -74,6 +74,7 @@
     "openai": "^4.24.7",
     "papaparse": "^5.4.1",
     "pg": "^8.11.3",
+    "pgsql-ast-parser": "^12.0.1",
     "pgvector": "^0.1.7",
     "pino": "^8.17.2",
     "pino-pretty": "^10.3.1",

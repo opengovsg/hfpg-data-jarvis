@@ -5,16 +5,16 @@ import { getIronSession } from 'iron-session'
 import { sessionOptions } from '~/server/modules/auth/session'
 import { type SessionData } from '~/lib/types/session'
 import { type NextApiRequest, type NextApiResponse } from 'next'
-import { OpenApiClient } from '~/server/modules/jarvis/open-api.service'
+import { OpenApiClient } from '~/server/modules/watson/open-api.service'
 import { prisma } from '~/server/prisma'
-import { ChatMessageVectorService } from '~/server/modules/jarvis/chat-history.service'
-import { PreviousSqlVectorService } from '~/server/modules/jarvis/sql-vector.service'
-import { generateEmbeddingFromOpenApi } from '~/server/modules/jarvis/vector.utils'
+import { ChatMessageVectorService } from '~/server/modules/watson/chat-history.service'
+import { PreviousSqlVectorService } from '~/server/modules/watson/sql-vector.service'
+import { generateEmbeddingFromOpenApi } from '~/server/modules/watson/vector.utils'
 import {
   parseOpenApiResponse,
   assertValidAndInexpensiveQuery,
   generateResponseFromErrors,
-} from '~/server/modules/jarvis/jarvis.utils'
+} from '~/server/modules/watson/watson.utils'
 import { getTableInfo } from '~/server/modules/prompt/sql/getTablePrompt'
 import { getSimilarSqlStatementsPrompt } from '~/server/modules/prompt/sql/sql.utils'
 import {
@@ -24,7 +24,7 @@ import {
 import {
   ClientInputError,
   UnableToGenerateSuitableResponse,
-} from '~/server/modules/jarvis/jarvis.errors'
+} from '~/server/modules/watson/watson.errors'
 
 // this is important to avoid the 'API resolved without sending a response for /api/test_sse, this may result in stalled requests.' warning
 export const config = {
@@ -37,7 +37,7 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST')
     return res.status(404).json({ message: 'not found' })
 
-  const isAuthed = isAuthenticated(req, res)
+  const isAuthed = await isAuthenticated(req, res)
 
   if (!isAuthed) {
     return res.status(401).json({ message: 'unauthenticated' })

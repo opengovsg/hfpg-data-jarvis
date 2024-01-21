@@ -4,9 +4,13 @@ import { z } from 'zod'
 import {
   ClientInputError,
   ExpensiveError,
-  MalformedError,
+  InvalidQueryError,
   TokenExceededError,
-} from './jarvis.errors'
+  UnauthorisedDbAccess,
+} from './watson.errors'
+
+import { astVisitor, parse, type Statement } from 'pgsql-ast-parser'
+import { VALID_TABLE_NAMES } from '../prompt/sql/types'
 
 /**
  * Function to normalise all errors that might arise from calling jarvis.service
@@ -25,6 +29,10 @@ export function generateResponseFromErrors({
 
   if (error instanceof TokenExceededError) {
     return 'The data returned from your question was too long to be comprehensible. Please try aggregating or adding filters to your search.'
+  }
+
+  if (error instanceof UnauthorisedDbAccess) {
+    return 'The LLM was detected to have been trying to execute malicious code. Please contact us for more help if you think this is a mistake.'
   }
 
   if (error instanceof ExpensiveError) {
@@ -86,13 +94,106 @@ export const queryPlanSchema = z.array(
 )
 
 /**
+ * NOTE: This parses the query and retrieves the type of operation and table names accessed to make sure
+ * we have READ-only access to table names.
+ *
+ * WE ACHIEVE DO THE SAME BY HAVING A PG DB-USER WHICH ALLOWS FOR READ-ONLY ACCESS TO CERTAIN TABLES ONLY
+ *
+ * THIS IS AN APPROACH TO TRY AND HAVE ALL LOGIC IN APPLICATION CODE, INSTEAD OF TRYING TO MANAGE THINGS IN DB LAYER
+ *
+ * For production we can use this as a redundant protection layer only to tell developers in local dev to keep this logic in sync with database permissions just for maintainability purpose
+ *
+ * Assert the following:
+ * - Query is READ only operation
+ * - Query only selects tables that are whitelisted from `VALID_TABLE_NAMES`
+ */
+export function assertReadOnlyValidTablesAccess(query: string) {
+  try {
+    const queriedTables: Set<string> = new Set()
+    const statementTypes: Set<Statement['type']> = new Set()
+
+    const visitor = astVisitor(() => ({
+      tableRef: (t) => queriedTables.add(t.name),
+    }))
+
+    // start traversing a statement
+    const statements = parse(query)
+
+    for (const statement of statements) {
+      visitor.statement(statement)
+      statementTypes.add(statement.type)
+    }
+
+    /**
+     * Step 1: Check that this only contains READ operations
+     * Check if after removal of 'select' statement types, other statement types still exist
+     */
+
+    statementTypes.delete('select')
+    if (statementTypes.size > 0) {
+      throw new UnauthorisedDbAccess(
+        query,
+        `Query contains non-read operations of: ${statementTypes}`,
+      )
+    }
+
+    /**
+     * Step 2: Check if only contains read operations from valid tables, otherwise throw error
+     */
+    const validTableNames = new Set(VALID_TABLE_NAMES) as unknown as Set<string>
+
+    const restrictedTablesAccess: string[] = []
+
+    for (const queriedTable of queriedTables) {
+      if (!validTableNames.has(queriedTable)) {
+        restrictedTablesAccess.push(queriedTable)
+      }
+    }
+
+    if (restrictedTablesAccess.length > 0) {
+      throw new UnauthorisedDbAccess(
+        query,
+        `Query trying to access restricted tables of ${JSON.stringify(
+          restrictedTablesAccess,
+        )}`,
+      )
+    }
+
+    // print result
+    return `Used tables ${[...queriedTables].join(', ')} !`
+  } catch (e) {
+    if (e instanceof UnauthorisedDbAccess) {
+      throw e
+    }
+
+    /**
+     * The `pgsql-ast-parser` does not allow for catching custom errors and only throw a generic `Error` class
+     * for now we dont deal with switch casing every `Error` message, and just treat all errors thrown by parser as `InvalidQueryError`
+     *
+     * TODO: Understand source-code of `pgsql-ast-parser` and see if there's a way to extract meaningful error messages. Their error message logic is not written in JS.
+     * */
+    let msg = `Unexpected error with SQL AST parser`
+
+    if (e instanceof Error) {
+      msg = e.message
+    }
+
+    throw new InvalidQueryError(query, msg)
+  }
+}
+
+/**
  * Checks if query is runnable and whether it is expensive
  */
 export async function assertValidAndInexpensiveQuery(
   query: string,
   prisma: PrismaClient,
 ) {
+  // STEP 1: Assert if query is authorised to access table and that it only contains READ operations
+  assertReadOnlyValidTablesAccess(query)
+
   try {
+    // STEP 2: Check if it is expensive (beyond 6 seconds for now)
     const explanation = await prisma.$queryRawUnsafe(`EXPLAIN ${query}`)
 
     const parsedExplanation = queryPlanSchema.parse(explanation)
@@ -129,6 +230,6 @@ export async function assertValidAndInexpensiveQuery(
      * - Prisma query errors, error.code of 42601
      * - Zod parse errors in case explanation of query is of an incorrect schema.
      */
-    throw new MalformedError(query)
+    throw new InvalidQueryError(query)
   }
 }
