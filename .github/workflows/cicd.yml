@@ -43,3 +43,41 @@ jobs:
           tags: 058264126666.dkr.ecr.ap-southeast-1.amazonaws.com/watson-next:${{ steps.extract_tag.outputs.tag }}
           build-args: |
             NODE_ENV=production
+
+  next-eb-deploy:
+    runs-on: ubuntu-latest
+    needs: [next-build]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Package Dockerrun.aws.json
+        run: |
+          sed -i -e "s|@REPO|$REPO|g" Dockerrun.aws.json
+          sed -i -e "s|@TAG|$TAG|g" Dockerrun.aws.json
+          zip -r "deploy.zip" Dockerrun.aws.json
+        env:
+          REPO: 058264126666.dkr.ecr.ap-southeast-1.amazonaws.com/watson-next
+          TAG: ${{ needs.next-build.outputs.tag }}
+      - name: Get timestamp
+        shell: bash
+        run: echo "timestamp=$(env TZ=Asia/Singapore date '+%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
+        id: get_timestamp
+      - name: Get Elastic Beanstalk label
+        shell: bash
+        run: echo "label=$(echo ${TAG}-${TIMESTAMP})" >> $GITHUB_OUTPUT
+        id: get_label
+        env:
+          TAG: ${{ needs.next-build.outputs.tag }}
+          TIMESTAMP: ${{ steps.get_timestamp.outputs.timestamp }}
+      - name: Deploy to EB
+        uses: opengovsg/beanstalk-deploy@v11
+        with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          application_name: watson
+          environment_name: watson-staging
+          version_label: ${{ steps.get_label.outputs.label }}
+          region: ap-southeast-1
+          deployment_package: deploy.zip
+          wait_for_deployment: false
+          wait_for_environment_recovery: false
