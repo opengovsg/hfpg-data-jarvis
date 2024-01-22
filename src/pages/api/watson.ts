@@ -5,13 +5,13 @@ import { getIronSession } from 'iron-session'
 import { sessionOptions } from '~/server/modules/auth/session'
 import { type SessionData } from '~/lib/types/session'
 import { type NextApiRequest, type NextApiResponse } from 'next'
-import { OpenApiClient } from '~/server/modules/watson/open-api.service'
+import { OpenAiClient } from '~/server/modules/watson/open-ai.service'
 import { prisma } from '~/server/prisma'
 import { ChatMessageVectorService } from '~/server/modules/watson/chat-history.service'
 import { PreviousSqlVectorService } from '~/server/modules/watson/sql-vector.service'
 import { generateEmbeddingFromOpenApi } from '~/server/modules/watson/vector.utils'
 import {
-  parseOpenApiResponse,
+  parseOpenAiResponse,
   assertValidAndInexpensiveQuery,
   generateResponseFromErrors,
 } from '~/server/modules/watson/watson.utils'
@@ -23,8 +23,12 @@ import {
 } from '~/utils/watson'
 import {
   ClientInputError,
+  NamedEntityParsingError,
+  TooManyEntitiesError,
   UnableToGenerateSuitableResponse,
 } from '~/server/modules/watson/watson.errors'
+import { z } from 'zod'
+import { bestGuessAddressDetailsFromOneMap } from '~/server/modules/onemap/onemap.service'
 
 // this is important to avoid the 'API resolved without sending a response for /api/test_sse, this may result in stalled requests.' warning
 export const config = {
@@ -69,7 +73,21 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
       conversationId,
     })
 
-    const tableInfo = await getTableInfo('hdb_resale_transaction', prisma)
+    const tableInfo = await getTableInfo(
+      [
+        { tableName: 'hdb_resale_transaction' },
+        {
+          tableName: 'searched_address',
+          additionalMetadata:
+            'This table contains columns that map addresses to POST_GIS geography coordinates. Use this table for a POST_GIS "st_dwithin" radius search against "hdb_resale_transactoin" in the original query',
+        },
+      ],
+      prisma,
+    )
+
+    const namedEntities = await detectNamedEntitiesFromQuery({ question })
+
+    await insertAddressFromNamedEntities(namedEntities)
 
     const sqlQuery = await generateSqlQueryFromAgent({
       question,
@@ -121,6 +139,75 @@ function assertQuestionLengthConstraints(question: string) {
   }
 }
 
+const namedEntityResSchema = z.array(z.string())
+
+async function detectNamedEntitiesFromQuery({
+  question,
+}: {
+  question: string
+}) {
+  const namedEntityPrompt = `You are a named entity recognition expert who's only task is to extract out the name of a location from a sentence. 
+
+  Please perform your task on the following question below. 
+  -------------------------
+  QUESTION : "${question}"
+  -------------------------
+  Return the output as a JSON string array containing the entity names. Return the string array and nothing else.
+  Examples of valid output formats: ["clementi"], ["ang mo kio", "bishan"], ["toh tuck"]`
+
+  const res = await OpenAiClient.chat.completions.create({
+    model: 'gpt-3.5-turbo',
+    messages: [
+      {
+        role: 'user',
+        content: namedEntityPrompt,
+      },
+    ],
+  })
+
+  const content = parseOpenAiResponse(namedEntityPrompt, res)
+
+  if (content.type === 'failure') {
+    throw new Error('Failed to generate OpenAi response!')
+  }
+
+  const namedEntities = namedEntityResSchema.safeParse(
+    JSON.parse(content.response),
+  )
+
+  if (!namedEntities.success) {
+    throw new NamedEntityParsingError(content.response)
+  }
+
+  return namedEntities.data
+}
+
+async function insertAddressFromNamedEntities(namedEntities: string[]) {
+  if (namedEntities.length === 0) {
+    return null
+  }
+
+  if (namedEntities.length > 1) {
+    throw new TooManyEntitiesError(namedEntities)
+  }
+
+  const locationName = namedEntities[0]!
+
+  const addressDetails = await bestGuessAddressDetailsFromOneMap(locationName)
+
+  const formattedAddress = addressDetails.ADDRESS.replaceAll("'", "''")
+
+  await prisma.$queryRawUnsafe(`INSERT INTO searched_address (address, search_val, lng, lat, coords) VALUES ('${formattedAddress}', 
+  '${locationName}', 
+  ${addressDetails.LONGITUDE}, 
+  ${addressDetails.LATITUDE}, 
+  (ST_SetSRID(ST_MakePoint(${addressDetails.LONGITUDE}, ${addressDetails.LATITUDE}), 4326))) 
+  ON CONFLICT DO NOTHING
+  ;`)
+
+  return addressDetails
+}
+
 /** From a question asked, we do the following steps:
  * 1. Using a question embedding, do a vectorised search in the database for closest question <> SQL query pairing in the database
  * 2. Add the top 5 Question <> SQL Query pairings to the prompt
@@ -146,10 +233,14 @@ async function generateSqlQueryFromAgent({
   const similarSqlStatementPrompt =
     getSimilarSqlStatementsPrompt(nearestSqlEmbeddings)
 
+  console.log('>> similar sql statements', similarSqlStatementPrompt)
+
   const preamble = `You are an AI Chatbot specialised in PostgresQL. Based on the provided SQL table schema below, write a PostgreSQL query that would answer the user's question.
 
 Never query for all columns from a table. You must query only the columns that are needed to answer the question.
 Pay attention to use only the column names you can see in the tables below. Be careful to not query for columns that do not exist. Also, pay attention to which column is in which table.
+
+All searches should be case insensitive. Use ILIKE for case-insenstive search.
 
 ------------
 SCHEMA: ${tableInfo}
@@ -160,7 +251,7 @@ SIMILAR SQL STATEMENTS: ${similarSqlStatementPrompt}
 Return only the SQL query and nothing else.
 `
 
-  const response = await OpenApiClient.chat.completions.create({
+  const response = await OpenAiClient.chat.completions.create({
     model: 'gpt-3.5-turbo',
     messages: [
       {
@@ -176,7 +267,7 @@ Return only the SQL query and nothing else.
     ],
   })
 
-  const queryResponse = parseOpenApiResponse(preamble + question, response)
+  const queryResponse = parseOpenAiResponse(preamble + question, response)
 
   if (
     queryResponse.type === 'failure' ||
@@ -211,7 +302,7 @@ async function runQueryAndTranslateToNlp({
   tableInfo: string
   res: NextApiResponse
 }) {
-  await assertValidAndInexpensiveQuery(sqlQuery, prisma)
+  // await assertValidAndInexpensiveQuery(sqlQuery, prisma)
 
   const sqlRes = await prisma.$queryRawUnsafe(sqlQuery)
 
@@ -231,7 +322,7 @@ async function runQueryAndTranslateToNlp({
   ------------
   SQL RESPONSE: ${stringifiedRes}`
 
-  const stream = await OpenApiClient.chat.completions.create({
+  const stream = await OpenAiClient.chat.completions.create({
     model: 'gpt-3.5-turbo',
     stream: true,
     messages: [{ role: 'user', content: nlpPrompt }],

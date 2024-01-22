@@ -9,19 +9,11 @@ export class InvalidQueryError extends Error {
 
     super(msg)
   }
-
-  toJSON() {
-    return this.message
-  }
 }
 
 export class UnauthorisedDbAccess extends Error {
   constructor(sqlQuery: string, message: string) {
     super(`Unauthorised query: ${sqlQuery}, message: ${message}`)
-  }
-
-  toJSON() {
-    return this.message
   }
 }
 
@@ -29,20 +21,12 @@ export class ExpensiveError extends Error {
   constructor(cost: number, sqlQuery: string) {
     super(`Query was too expensive at ${cost}ms, query: ${sqlQuery}`)
   }
-
-  toJSON() {
-    return this.message
-  }
 }
 
 // TODO: Throw this error from response
 export class TokenExceededError extends Error {
   constructor(tokenCount: number) {
     super(`Token count exceeded at ${tokenCount}`)
-  }
-
-  toJSON() {
-    return this.message
   }
 }
 
@@ -60,8 +44,18 @@ export class UnableToGenerateSuitableResponse extends Error {
   constructor(message = 'Unable to generate suitable response') {
     super(message)
   }
+}
 
-  toJSON() {
-    return this.message
+export class NamedEntityParsingError extends Error {
+  constructor(response: string) {
+    super(
+      `Unable to parse the follow response for named entity recognition: ${response}`,
+    )
+  }
+}
+
+export class TooManyEntitiesError extends Error {
+  constructor(readonly entities: string[]) {
+    super(`Too many locations detected: ${entities}`)
   }
 }

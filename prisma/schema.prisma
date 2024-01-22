@@ -4,7 +4,7 @@
 datasource db {
   provider   = "postgresql"
   url        = env("DATABASE_URL")
-  extensions = [vector]
+  extensions = [vector, postgis]
 }
 
 generator client {
@@ -26,16 +26,30 @@ model HdbResaleTransaction {
   storeyRangeBegin Int @map("storey_range_begin")
   storeyRangeEnd   Int @map("storey_range_end")
 
-  floorAreaSquareFeet    Int    @map("floor_area_square_feet")
-  flatModel              String @map("flat_model")
-  flatType               String @map("flat_type")
-  leaseCommenceYear      Int    @map("lease_commence_year")
-  remainingLeaseInMonths Int    @map("remaining_lease_in_months")
-  resalePrice            Float  @map("resale_price")
-  latitude               Float  @map("latitude")
-  longitude              Float  @map("longitude")
+  floorAreaSquareFeet    Float                                 @map("floor_area_square_feet")
+  flatModel              String                                @map("flat_model")
+  flatType               String                                @map("flat_type")
+  leaseCommenceYear      Int                                   @map("lease_commence_year")
+  remainingLeaseInMonths Int                                   @map("remaining_lease_in_months")
+  resalePrice            Float                                 @map("resale_price")
+  coords                 Unsupported("geometry(Point, 4326)")?
+  latitude               Float                                 @map("latitude")
+  longitude              Float                                 @map("longitude")
 
+  @@index([coords], name: "hdb_geometry_index", type: Gist)
   @@map("hdb_resale_transaction")
+}
+
+// Stores all valid searched value to lat lng coordinates 
+model SearchedAddress {
+  address   String
+  searchVal String @id @map("search_val")
+  lat       Float
+  lng       Float
+  coords                 Unsupported("geometry(Point, 4326)")?
+
+  @@index([coords], name: "searched_address_geometry_index", type: Gist)
+  @@map("searched_address")
 }
 
 enum ChatMessageUser {
@@ -93,5 +107,5 @@ model User {
   emailVerified DateTime?      @map("email_verified")
   image         String?
   bio           String?
-  conversations          Conversation[]
+  conversations Conversation[]
 }

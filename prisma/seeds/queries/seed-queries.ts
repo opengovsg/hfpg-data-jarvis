@@ -11,15 +11,24 @@ export const seedQueries = async () => {
     },
     {
       rawQuestion: `When did the most expensive transaction in Clementi occur?`,
-      sqlQuery: `SELECT
-          transaction_date
-        FROM
-          hdb_resale_transaction
-        WHERE
-          town = 'CLEMENTI'
-        ORDER BY
-          resale_price DESC
-        LIMIT 1;`,
+      sqlQuery: `
+      SELECT
+        hdb_resale_transaction.transaction_date
+      FROM
+        hdb_resale_transaction
+        INNER JOIN (
+          SELECT
+            Geography (coords) AS coords
+          FROM
+            searched_address
+          WHERE
+            searched_address.address ILIKE 'clementi'
+          LIMIT 1) b ON ST_DWithin (hdb_resale_transaction.coords,
+          b.coords,
+          5000)
+      ORDER BY
+        resale_price DESC
+      LIMIT 1;`,
     },
     {
       rawQuestion:
@@ -66,31 +75,39 @@ export const seedQueries = async () => {
       rawQuestion:
         'What is the month over month average price trend for 3-bedroom flats in woodlands?',
       sqlQuery: `SELECT
-      transactionMonth,
-      transactionYear,
-      averageMonthlyPrice,
-      (averageMonthlyPrice - lag(averageMonthlyPrice) OVER (ORDER BY transactionMonth,
-          transactionYear)) / lag(averageMonthlyPrice) OVER (ORDER BY transactionMonth,
-        transactionYear) AS monthOnMonthPriceChange
-    FROM (
-      SELECT
-        EXTRACT(MONTH FROM "transaction_date") AS transactionMonth,
-        EXTRACT(YEAR FROM "transaction_date") AS transactionYear,
-        town,
-        AVG("resale_price") AS averageMonthlyPrice
-      FROM
-        hdb_resale_transaction
-      WHERE
-        UPPER(town)
-        LIKE 'WOODLANDS'
-        AND UPPER("flat_type") = '3 ROOM'
-      GROUP BY
-        town,
-        EXTRACT(MONTH FROM "transaction_date"),
-        EXTRACT(YEAR FROM "transaction_date")) sub
-    ORDER BY
-      transactionMonth,
-      transactionYear;`,
+        transactionMonth,
+        transactionYear,
+        averageMonthlyPrice,
+        (averageMonthlyPrice - lag(averageMonthlyPrice) OVER (ORDER BY transactionMonth,
+            transactionYear)) / lag(averageMonthlyPrice) OVER (ORDER BY transactionMonth,
+          transactionYear) AS monthOnMonthPriceChange
+      FROM (
+        SELECT
+          EXTRACT(MONTH FROM "transaction_date") AS transactionMonth,
+          EXTRACT(YEAR FROM "transaction_date") AS transactionYear,
+          town,
+          AVG("resale_price") AS averageMonthlyPrice
+        FROM
+          hdb_resale_transaction
+          INNER JOIN (
+            SELECT
+              Geography (coords) AS coords
+            FROM
+              searched_address
+            WHERE
+              searched_address.address ILIKE 'woodlands'
+            LIMIT 1) b ON ST_DWithin (hdb_resale_transaction.coords,
+            b.coords,
+            1000)
+        WHERE
+          UPPER("flat_type") = '3 ROOM'
+        GROUP BY
+          town,
+          EXTRACT(MONTH FROM "transaction_date"),
+          EXTRACT(YEAR FROM "transaction_date")) sub
+      ORDER BY
+        transactionMonth,
+        transactionYear;`,
     },
     {
       rawQuestion: 'What is the distance between bishan and ang mo kio?',

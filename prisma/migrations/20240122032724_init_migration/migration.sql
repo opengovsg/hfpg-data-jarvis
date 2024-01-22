@@ -1,6 +1,8 @@
 -- CreateExtension
+CREATE EXTENSION IF NOT EXISTS "postgis";
+
+-- CreateExtension
 CREATE EXTENSION IF NOT EXISTS "vector";
-CREATE EXTENSION IF NOT EXISTS postgis;
 
 -- CreateEnum
 CREATE TYPE "ChatMessageUser" AS ENUM ('AGENT', 'USER');
@@ -14,12 +16,13 @@ CREATE TABLE "hdb_resale_transaction" (
     "street_name" TEXT NOT NULL,
     "storey_range_begin" INTEGER NOT NULL,
     "storey_range_end" INTEGER NOT NULL,
-    "floor_area_square_feet" INTEGER NOT NULL,
+    "floor_area_square_feet" DOUBLE PRECISION NOT NULL,
     "flat_model" TEXT NOT NULL,
     "flat_type" TEXT NOT NULL,
     "lease_commence_year" INTEGER NOT NULL,
     "remaining_lease_in_months" INTEGER NOT NULL,
     "resale_price" DOUBLE PRECISION NOT NULL,
+    "coords" geometry(Point, 4326),
     "latitude" DOUBLE PRECISION NOT NULL,
     "longitude" DOUBLE PRECISION NOT NULL,
 
@@ -81,6 +84,9 @@ CREATE TABLE "User" (
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
+
+-- CreateIndex
+CREATE INDEX "hdb_geometry_index" ON "hdb_resale_transaction" USING GIST ("coords");
 
 -- CreateIndex
 CREATE INDEX "Conversation_userId_idx" ON "Conversation"("userId");

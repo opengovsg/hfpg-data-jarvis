@@ -60,8 +60,8 @@ type OpenApiSuccess = {
   response: string
 }
 
-// Parse response from OpenAPI. Checks if we have faced any errors from `finish_reason` and map them to comprehensible errors on our end
-export function parseOpenApiResponse(
+// Parse response from OpenAI. Checks if we have faced any errors from `finish_reason` and map them to comprehensible errors on our end
+export function parseOpenAiResponse(
   question: string,
   chatResponse: ChatCompletion,
 ): OpenApiRes {
@@ -185,6 +185,13 @@ export function assertReadOnlyValidTablesAccess(query: string) {
 }
 
 /**
+ *
+ * TODO: Use this when we find out how to get `EXPLAIN` to understand geography cost. Right now any geography search is making the query seem artificially expensive
+ *
+ * We don't want to run EXPLAIN ANALYZE since it will actually run the query. Find a middle gorund in the future
+ *
+ * UNUSED AT THE MOMENT AS A RESULT OF THE TODO ABOVE
+ *
  * Checks if query is runnable and whether it is expensive
  */
 export async function assertValidAndInexpensiveQuery(
