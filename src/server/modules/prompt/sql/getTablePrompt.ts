@@ -1,10 +1,10 @@
 import { type PrismaClient } from '@prisma/client'
 import {
+  type TableMetadata,
   generateCreateTableSchemaFromTableInfo,
   generateSampleDataPrompt,
   getTableColumnMetadata,
 } from './sql.utils'
-import { type ValidTableName } from './types'
 
 /**
  * This function was created as the LangChains `SqlDatabase` interface only works with typeorm database connectors.
@@ -17,18 +17,29 @@ import { type ValidTableName } from './types'
  * */
 export async function getTableInfo(
   // TODO: Extend this to work with multiple tables in the future. For POC we just need one table
-  targetTable: ValidTableName,
+  targetTables: TableMetadata[],
   prisma: PrismaClient,
 ) {
-  const tableColumnsMetadata = await getTableColumnMetadata(targetTable, prisma)
+  const createTableSchemaPrompt = ''
 
-  const createTableSchemaPrompt = generateCreateTableSchemaFromTableInfo(
-    targetTable,
-    tableColumnsMetadata,
-  )
+  for (const targetTable of targetTables) {
+    const tableColumnsMetadata = await getTableColumnMetadata(
+      targetTable.tableName,
+      prisma,
+    )
 
-  const { sampleDataPrompt, query } =
-    await generateSampleDataPrompt(targetTable)
+    const createTableInfo = generateCreateTableSchemaFromTableInfo(
+      targetTable,
+      tableColumnsMetadata,
+    )
 
-  return createTableSchemaPrompt.concat(query, sampleDataPrompt)
+    const { sampleDataPrompt, query } = await generateSampleDataPrompt(
+      targetTable.tableName,
+      tableColumnsMetadata,
+    )
+
+    createTableSchemaPrompt.concat(createTableInfo, query, sampleDataPrompt)
+  }
+
+  return createTableSchemaPrompt
 }

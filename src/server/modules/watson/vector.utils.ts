@@ -1,6 +1,6 @@
 import '@tensorflow/tfjs'
 import { load } from '@tensorflow-models/universal-sentence-encoder'
-import { OpenApiClient } from './open-api.service'
+import { OpenAiClient } from './open-ai.service'
 
 // TODO: Use this next time, right now `model.load()` takes about ~5 seconds, adding lots of latency to our rseponse
 export async function generateEmbedding(sentence: string) {
@@ -12,7 +12,7 @@ export async function generateEmbedding(sentence: string) {
 }
 
 export async function generateEmbeddingFromOpenApi(sentence: string) {
-  const embedding = await OpenApiClient.embeddings.create({
+  const embedding = await OpenAiClient.embeddings.create({
     model: 'text-embedding-ada-002',
     input: sentence,
     encoding_format: 'float',
