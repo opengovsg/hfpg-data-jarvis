@@ -56,6 +56,5 @@ USER nextjs
 EXPOSE 8080
 
 ENV PORT 8080
-ENV HOST 0.0.0.0
 
 CMD ["node", "server.js"]
