@@ -5,13 +5,13 @@ import { getIronSession } from 'iron-session'
 import { sessionOptions } from '~/server/modules/auth/session'
 import { type SessionData } from '~/lib/types/session'
 import { type NextApiRequest, type NextApiResponse } from 'next'
-import { OpenApiClient } from '~/server/modules/watson/open-api.service'
+import { OpenAIClient } from '~/server/modules/watson/open-api.service'
 import { prisma } from '~/server/prisma'
 import { ChatMessageVectorService } from '~/server/modules/watson/chat-history.service'
 import { PreviousSqlVectorService } from '~/server/modules/watson/sql-vector.service'
-import { generateEmbeddingFromOpenApi } from '~/server/modules/watson/vector.utils'
+import { generateEmbeddingFromOpenAi } from '~/server/modules/watson/vector.utils'
 import {
-  parseOpenApiResponse,
+  parseOpenAiResponse,
   assertValidAndInexpensiveQuery,
   generateResponseFromErrors,
   doesPromptExceedTokenLimit,
@@ -64,7 +64,7 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
   const chatHistoryVectorService = new ChatMessageVectorService(prisma)
 
   try {
-    const questionEmbedding = await generateEmbeddingFromOpenApi(question)
+    const questionEmbedding = await generateEmbeddingFromOpenAi(question)
 
     await chatHistoryVectorService.storeMessage({
       embedding: questionEmbedding,
@@ -105,7 +105,7 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
   console.log(`NLP Response: ${finalAgentResponse}`)
 
   const agentResEmbedding =
-    await generateEmbeddingFromOpenApi(finalAgentResponse)
+    await generateEmbeddingFromOpenAi(finalAgentResponse)
 
   await chatHistoryVectorService.storeMessage({
     embedding: agentResEmbedding,
@@ -165,7 +165,7 @@ SIMILAR SQL STATEMENTS: ${similarSqlStatementPrompt}
 Return only the SQL query and nothing else.
 `
 
-  const response = await OpenApiClient.chat.completions.create({
+  const response = await OpenAIClient.chat.completions.create({
     model: 'gpt-3.5-turbo',
     messages: [
       {
@@ -181,7 +181,7 @@ Return only the SQL query and nothing else.
     ],
   })
 
-  const queryResponse = parseOpenApiResponse(preamble + question, response)
+  const queryResponse = parseOpenAiResponse(preamble + question, response)
 
   if (
     queryResponse.type === 'failure' ||
@@ -240,7 +240,7 @@ async function runQueryAndTranslateToNlp({
     throw new TokenExceededError()
   }
 
-  const stream = await OpenApiClient.chat.completions.create({
+  const stream = await OpenAIClient.chat.completions.create({
     model: 'gpt-3.5-turbo',
     stream: true,
     messages: [{ role: 'user', content: nlpPrompt }],

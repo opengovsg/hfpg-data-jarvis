@@ -1,7 +1,7 @@
 import { protectedProcedure, router } from '~/server/trpc'
 import { PreviousSqlVectorService } from './sql-vector.service'
 import { z } from 'zod'
-import { generateEmbeddingFromOpenApi } from './vector.utils'
+import { generateEmbeddingFromOpenAi } from './vector.utils'
 
 export const watsonRouter = router({
   getConversation: protectedProcedure.query(
@@ -39,7 +39,7 @@ export const watsonRouter = router({
       const service = new PreviousSqlVectorService(prisma)
 
       // TODO: Make generate embedding hit some kind of redis cache of question <> embedding mapping so we dont get charged for double calls
-      const embedding = await generateEmbeddingFromOpenApi(question)
+      const embedding = await generateEmbeddingFromOpenAi(question)
 
       const nearestQuestions = await service.findNearestEmbeddings({
         embedding,

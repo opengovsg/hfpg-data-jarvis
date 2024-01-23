@@ -79,7 +79,7 @@ const server = z
     OTP_EXPIRY: z.coerce.number().positive().optional().default(600),
     POSTMAN_API_KEY: z.string().optional(),
     SENDGRID_API_KEY: z.string().optional(),
-    OPEN_API_KEY: z.string(),
+    OPEN_AI_KEY: z.string(),
     SENDGRID_FROM_ADDRESS: z.union([
       z.string().email().optional(),
       z.string().length(0),
@@ -145,7 +145,7 @@ const processEnv = {
   R2_AVATARS_DIRECTORY: process.env.R2_AVATARS_DIRECTORY,
   R2_IMAGES_DIRECTORY: process.env.R2_IMAGES_DIRECTORY,
   R2_PUBLIC_HOSTNAME: process.env.R2_PUBLIC_HOSTNAME,
-  OPEN_API_KEY: process.env.OPEN_API_KEY,
+  OPEN_AI_KEY: process.env.OPEN_AI_KEY,
   R2_SECRET_ACCESS_KEY: process.env.R2_SECRET_ACCESS_KEY,
   SGID_CLIENT_ID: process.env.SGID_CLIENT_ID,
   SGID_CLIENT_SECRET: process.env.SGID_CLIENT_SECRET,

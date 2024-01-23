@@ -47,24 +47,24 @@ export function generateResponseFromErrors({
   return `Unfortunately, that’s not something I would know. If you’d like, try phrasing your question differently or asking me a new one! `
 }
 
-export type OpenApiRes = OpenApiSuccess | OpenApiFailure
+export type OpenAi = OpenAiSuccess | OpenAiFailure
 
-type OpenApiFailure = {
+type OpenAiFailure = {
   type: 'failure'
   // TODO: Investigate what function_call and tool_calls are. For now just treat them as failures
   reason: 'length' | 'content_filter' | 'function_call' | 'tool_calls'
 }
 
-type OpenApiSuccess = {
+type OpenAiSuccess = {
   type: 'success'
   response: string
 }
 
-// Parse response from OpenAPI. Checks if we have faced any errors from `finish_reason` and map them to comprehensible errors on our end
-export function parseOpenApiResponse(
+// Parse response from OpenAI. Checks if we have faced any errors from `finish_reason` and map them to comprehensible errors on our end
+export function parseOpenAiResponse(
   question: string,
   chatResponse: ChatCompletion,
-): OpenApiRes {
+): OpenAi {
   const latestResponse = chatResponse.choices[0]!
 
   const finishReason = latestResponse.finish_reason
