@@ -26,6 +26,7 @@ import {
 } from '~/server/modules/watson/watson.constants'
 import { v4 as uuidv4 } from 'uuid'
 import { type WatsonErrorRes } from '~/server/modules/watson/watson.types'
+import { EmptyChatDisplay } from './EmptyChatDisplay'
 
 const ChatWindow = () => {
   const [conversation] = trpc.watson.getConversation.useSuspenseQuery()
@@ -191,6 +192,14 @@ const ChatWindow = () => {
           pt={8}
           overflowY="scroll"
         >
+          {storedConversation.length === 0 && (
+            <EmptyChatDisplay
+              onClickSuggestion={(suggestion) =>
+                askQuestionForm.setValue('question', suggestion)
+              }
+            />
+          )}
+
           {storedConversation.map((chatMsg) => (
             <MessageBox
               key={chatMsg.id}
