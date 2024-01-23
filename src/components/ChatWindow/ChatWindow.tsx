@@ -10,7 +10,7 @@ import {
 } from '@chakra-ui/react'
 import ResizeTextarea from 'react-textarea-autosize'
 import _ from 'lodash'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { BiSend } from 'react-icons/bi'
 import { useZodForm } from '~/lib/form'
 import { trpc } from '~/utils/trpc'
@@ -19,11 +19,22 @@ import { useCallWatson } from './chat-window.hooks'
 import { getWatsonRequestSchema } from '~/utils/watson'
 import { type z } from 'zod'
 import { FormErrorMessage } from '@opengovsg/design-system-react'
+import { SuggestionsSection } from './SuggestionsSection'
+import {
+  MAX_QUESTION_LENGTH,
+  MIN_QUESTION_LENGTH,
+} from '~/server/modules/watson/watson.constants'
+import { v4 as uuidv4 } from 'uuid'
+import { type WatsonErrorRes } from '~/server/modules/watson/watson.types'
 
 const ChatWindow = () => {
   const [conversation] = trpc.watson.getConversation.useSuspenseQuery()
   const [isGeneratingResponse, setIsGeneratingResponse] = useState(false)
   const [isInputDisabled, setIsInputDisabled] = useState(false)
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [isSuggestionLoading, setIsSuggestionLoading] = useState<boolean>(false)
+
+  const utils = trpc.useContext()
 
   // TODO: List virtualisation in the future
   const [storedConversation, setStoredConversation] = useState<
@@ -50,10 +61,14 @@ const ChatWindow = () => {
     if (!!chatWindowRef.current) {
       chatWindowRef.current.scrollTo(0, chatWindowRef.current.scrollHeight)
     }
-  }, [storedConversation])
+  }, [storedConversation, suggestions])
 
-  const callWatson = useCallWatson({
-    handleChunk: (chunk) => {
+  const shouldShowSuggestions =
+    !!storedConversation[storedConversation.length - 1]?.isErrorMessage &&
+    !isSuggestionLoading
+
+  const handleOnAgentResponse = useCallback(
+    (chunk: string, isError?: boolean) => {
       setIsGeneratingResponse(false)
 
       setStoredConversation((prev) => {
@@ -73,7 +88,8 @@ const ChatWindow = () => {
             ...prev,
             {
               type: 'AGENT',
-              id: _.uniqueId(),
+              id: uuidv4(),
+              isErrorMessage: isError,
               message: chunk,
             },
           ]
@@ -86,15 +102,51 @@ const ChatWindow = () => {
           {
             ...lastIndexValue,
             message: lastIndexValue.message + chunk,
+            isErrorMessage: isError,
           },
         ]
       })
     },
+    [],
+  )
+
+  /** Sets message to be error message and also gives suggestions */
+  const handleError = useCallback(
+    async (error: WatsonErrorRes, question: string) => {
+      handleOnAgentResponse(error.message, true)
+      setIsSuggestionLoading(true)
+      const suggestions = await utils.watson.getSuggestions.fetch({ question })
+      setIsSuggestionLoading(false)
+
+      setSuggestions(suggestions)
+    },
+    [handleOnAgentResponse, utils.watson.getSuggestions],
+  )
+
+  const callWatson = useCallWatson({
+    handleChunk: handleOnAgentResponse,
+    handleError,
   })
 
   const handleSubmitData = async (
     data: z.infer<typeof getWatsonRequestSchema>,
   ) => {
+    if (data.question.length < MIN_QUESTION_LENGTH) {
+      askQuestionForm.setError('question', {
+        message: `Please enter at least ${MIN_QUESTION_LENGTH} characters`,
+      })
+
+      return
+    }
+
+    if (data.question.length > MAX_QUESTION_LENGTH) {
+      askQuestionForm.setError('question', {
+        message: `Please enter at most ${MAX_QUESTION_LENGTH} characters`,
+      })
+
+      return
+    }
+
     askQuestionForm.reset({
       question: '',
       conversationId: conversation.conversationId,
@@ -106,7 +158,7 @@ const ChatWindow = () => {
     setStoredConversation((prev) => [
       ...prev,
       {
-        id: _.uniqueId(),
+        id: uuidv4(),
         message: data.question,
         type: 'USER',
       },
@@ -135,6 +187,7 @@ const ChatWindow = () => {
           align="start"
           ref={chatWindowRef}
           spacing={6}
+          w="100%"
           pt={8}
           overflowY="scroll"
         >
@@ -152,18 +205,27 @@ const ChatWindow = () => {
               message={'Churning insights...'}
             />
           )}
+
+          {shouldShowSuggestions && (
+            <SuggestionsSection
+              suggestions={suggestions}
+              onClickSuggestion={(suggestion) =>
+                askQuestionForm.setValue('question', suggestion)
+              }
+            />
+          )}
         </VStack>
 
         <VStack my={4}>
-          <Box
-            border="1px solid"
-            borderColor="gray.400"
-            p={1.5}
-            borderRadius="8px"
-            w="100%"
+          <FormControl
+            isInvalid={!!askQuestionForm.formState.errors.question?.message}
           >
-            <FormControl
-              isInvalid={!!askQuestionForm.formState.errors.question?.message}
+            <Box
+              border="1px solid"
+              borderColor="gray.400"
+              p={1.5}
+              borderRadius="8px"
+              w="100%"
             >
               <InputGroup alignItems="center">
                 <Textarea
@@ -196,11 +258,11 @@ const ChatWindow = () => {
                   aria-label={'send-jarvis'}
                 />
               </InputGroup>
-              <FormErrorMessage>
-                {askQuestionForm.formState.errors.question?.message}
-              </FormErrorMessage>
-            </FormControl>
-          </Box>
+            </Box>
+            <FormErrorMessage>
+              {askQuestionForm.formState.errors.question?.message}
+            </FormErrorMessage>
+          </FormControl>
 
           <Text textStyle="caption-2">
             Watson can make mistakes. Please use the information presented as a

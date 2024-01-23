@@ -14,6 +14,7 @@ import {
   parseOpenApiResponse,
   assertValidAndInexpensiveQuery,
   generateResponseFromErrors,
+  doesPromptExceedTokenLimit,
 } from '~/server/modules/watson/watson.utils'
 import { getTableInfo } from '~/server/modules/prompt/sql/getTablePrompt'
 import { getSimilarSqlStatementsPrompt } from '~/server/modules/prompt/sql/sql.utils'
@@ -23,8 +24,13 @@ import {
 } from '~/utils/watson'
 import {
   ClientInputError,
+  TokenExceededError,
   UnableToGenerateSuitableResponse,
 } from '~/server/modules/watson/watson.errors'
+import {
+  MIN_QUESTION_LENGTH,
+  MAX_QUESTION_LENGTH,
+} from '~/server/modules/watson/watson.constants'
 
 // this is important to avoid the 'API resolved without sending a response for /api/test_sse, this may result in stalled requests.' warning
 export const config = {
@@ -58,8 +64,6 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
   const chatHistoryVectorService = new ChatMessageVectorService(prisma)
 
   try {
-    assertQuestionLengthConstraints(question)
-
     const questionEmbedding = await generateEmbeddingFromOpenApi(question)
 
     await chatHistoryVectorService.storeMessage({
@@ -69,6 +73,7 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
       conversationId,
     })
 
+    assertQuestionLengthConstraints(question)
     const tableInfo = await getTableInfo('hdb_resale_transaction', prisma)
 
     const sqlQuery = await generateSqlQueryFromAgent({
@@ -94,7 +99,7 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
       metadata: loggerMetadata,
     })
 
-    res.write(finalAgentResponse)
+    res.json({ message: finalAgentResponse, type: 'error' })
   }
 
   console.log(`NLP Response: ${finalAgentResponse}`)
@@ -114,9 +119,9 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
 
 // TODO: Check context limit of whole prompt instead of just checking question
 function assertQuestionLengthConstraints(question: string) {
-  if (question.length < 10) {
+  if (question.length < MIN_QUESTION_LENGTH) {
     throw new ClientInputError('too_short')
-  } else if (question.length > 1000) {
+  } else if (question.length > MAX_QUESTION_LENGTH) {
     throw new ClientInputError('too_long')
   }
 }
@@ -230,6 +235,10 @@ async function runQueryAndTranslateToNlp({
   SQL QUERY: ${sqlQuery}
   ------------
   SQL RESPONSE: ${stringifiedRes}`
+
+  if (doesPromptExceedTokenLimit(nlpPrompt)) {
+    throw new TokenExceededError()
+  }
 
   const stream = await OpenApiClient.chat.completions.create({
     model: 'gpt-3.5-turbo',

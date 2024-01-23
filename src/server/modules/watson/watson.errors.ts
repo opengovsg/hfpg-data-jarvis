@@ -37,7 +37,7 @@ export class ExpensiveError extends Error {
 
 // TODO: Throw this error from response
 export class TokenExceededError extends Error {
-  constructor(tokenCount: number) {
+  constructor(tokenCount = 4096) {
     super(`Token count exceeded at ${tokenCount}`)
   }
 

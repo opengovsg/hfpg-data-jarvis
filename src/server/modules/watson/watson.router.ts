@@ -1,4 +1,7 @@
 import { protectedProcedure, router } from '~/server/trpc'
+import { PreviousSqlVectorService } from './sql-vector.service'
+import { z } from 'zod'
+import { generateEmbeddingFromOpenApi } from './vector.utils'
 
 export const watsonRouter = router({
   getConversation: protectedProcedure.query(
@@ -29,4 +32,20 @@ export const watsonRouter = router({
       return { conversationId: conversation.id, chatMessages }
     },
   ),
+  // TODO: Extend this to be dataset agnostic in the future. It will ideally take an input of the datasets we support
+  getSuggestions: protectedProcedure
+    .input(z.object({ question: z.string() }))
+    .query(async ({ ctx: { prisma }, input: { question } }) => {
+      const service = new PreviousSqlVectorService(prisma)
+
+      // TODO: Make generate embedding hit some kind of redis cache of question <> embedding mapping so we dont get charged for double calls
+      const embedding = await generateEmbeddingFromOpenApi(question)
+
+      const nearestQuestions = await service.findNearestEmbeddings({
+        embedding,
+        limit: 4,
+      })
+
+      return nearestQuestions.map((qn) => qn.rawQuestion)
+    }),
 })

@@ -11,6 +11,7 @@ export async function generateEmbedding(sentence: string) {
   return embeddings.arraySync()[0]!
 }
 
+// TODO: Make generate embedding hit some kind of redis cache of question <> embedding mapping so we dont get charged for double calls
 export async function generateEmbeddingFromOpenApi(sentence: string) {
   const embedding = await OpenApiClient.embeddings.create({
     model: 'text-embedding-ada-002',
