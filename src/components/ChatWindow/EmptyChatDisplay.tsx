@@ -1,11 +1,17 @@
 import { VStack, SimpleGrid, Box, Text } from '@chakra-ui/react'
 
 const suggestions = [
-  'What is the month over month average price trend for 3-bedroom flats in woodlands?',
-  'When did the most expensive transaction in Clementi occur?',
-  'What is the distance between bishan and ang mo kio?',
-  'What was the average price of flats sold?',
-]
+  {
+    header: 'Work out the average',
+    content: 'number of months flasts were leased for in Bishan',
+  },
+  { header: 'Find the least', content: 'expensive flat sold in Punggol' },
+  {
+    header: 'Explain the trend',
+    content: 'in price per size of 3-bedroom flats in Bedok in 2023',
+  },
+  { header: 'Find the most', content: 'expensive flat sold in Clementi' },
+] as const
 
 export const EmptyChatDisplay = ({
   onClickSuggestion,
@@ -13,14 +19,20 @@ export const EmptyChatDisplay = ({
   onClickSuggestion: (msg: string) => void
 }) => {
   return (
-    <VStack align="start" w="full" h="full" justify="end">
-      <Text textStyle="caption-1">Ask me your first question!</Text>
+    <VStack align="start" w="full" h="full">
+      <VStack align="center" justify="center" w="full" flex={1}>
+        <Text textStyle="h5">Hello, I&apos;m Watson ️🕵️‍♂️</Text>
+        <Text>
+          Ask me about resale flats or start with one of my suggestions.
+        </Text>
+      </VStack>
+
       <SimpleGrid columns={2} gap={2} w="full">
-        {suggestions.map((suggestion) => (
+        {suggestions.map(({ header, content }) => (
           <Box
             borderRadius={8}
             border="1px"
-            key={suggestion}
+            key={header}
             borderColor="interaction.main-subtle.default"
             bgColor="white"
             p={4}
@@ -31,11 +43,12 @@ export const EmptyChatDisplay = ({
             _active={{
               bgColor: 'interaction.muted.main.active',
             }}
-            onClick={() => onClickSuggestion(suggestion)}
+            onClick={() => onClickSuggestion(`${header} ${content}`)}
           >
-            <Text textStyle="caption-2" textColor="brand.secondary.400">
-              {suggestion}
+            <Text textStyle="subhead-2" textColor="base.content.medium">
+              {header}
             </Text>
+            <Text textColor="base.content.medium">{content}</Text>
           </Box>
         ))}
       </SimpleGrid>

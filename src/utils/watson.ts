@@ -10,3 +10,5 @@ export const getWatsonRequestSchema = z.object({
   question: z.string().min(MIN_QUESTION_LENGTH).max(MAX_QUESTION_LENGTH),
   conversationId: z.number(),
 })
+
+export type GetWatsonRequest = z.infer<typeof getWatsonRequestSchema>

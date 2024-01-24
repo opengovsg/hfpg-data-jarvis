@@ -6,3 +6,12 @@ export const WatsonErrorResSchema = z.object({
 })
 
 export type WatsonErrorRes = z.infer<typeof WatsonErrorResSchema>
+
+export const ChatHistoryGroups = [
+  'Today',
+  'Yesterday',
+  'Previous 30 Days',
+  'Older',
+] as const
+
+export type ChatHistoryGroup = (typeof ChatHistoryGroups)[number]

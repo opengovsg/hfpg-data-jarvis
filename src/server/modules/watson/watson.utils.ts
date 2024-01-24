@@ -11,6 +11,9 @@ import {
 
 import { astVisitor, parse, type Statement } from 'pgsql-ast-parser'
 import { VALID_TABLE_NAMES } from '../prompt/sql/types'
+import { type ChatHistoryGroup } from './watson.types'
+import * as dateFns from 'date-fns'
+import { utcToZonedTime } from 'date-fns-tz'
 
 export const doesPromptExceedTokenLimit = (prompt: string) => {
   // appromximation that 4 char === 1 token
@@ -234,4 +237,39 @@ export async function assertValidAndInexpensiveQuery(
      */
     throw new InvalidQueryError(query)
   }
+}
+
+export const mapDateToChatHistoryGroup = (
+  dateToCompare: Date,
+): ChatHistoryGroup => {
+  const today = new Date()
+  const today_utc = Date.UTC(
+    today.getUTCFullYear(),
+    today.getUTCMonth(),
+    today.getUTCDate(),
+    today.getUTCHours(),
+    today.getUTCMinutes(),
+    today.getUTCSeconds(),
+  )
+
+  const tz = 'Asia/Singapore'
+  const dateToCompareInSgt = utcToZonedTime(dateToCompare, tz)
+  const todayInSgt = utcToZonedTime(today_utc, tz)
+
+  const diffInDays = dateFns.differenceInBusinessDays(
+    todayInSgt,
+    dateToCompareInSgt,
+  )
+
+  if (diffInDays < 1) {
+    return 'Today'
+  } else if (diffInDays <= 1) {
+    return 'Yesterday'
+  } else if (
+    dateFns.differenceInBusinessDays(todayInSgt, dateToCompareInSgt) <= 30
+  ) {
+    return 'Previous 30 Days'
+  }
+
+  return 'Older'
 }

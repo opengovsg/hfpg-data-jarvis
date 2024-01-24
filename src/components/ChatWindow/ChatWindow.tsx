@@ -14,8 +14,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { BiSend } from 'react-icons/bi'
 import { useZodForm } from '~/lib/form'
 import { trpc } from '~/utils/trpc'
-import { MessageBox, type MessageBoxProps } from './MessageBox'
-import { useCallWatson } from './chat-window.hooks'
+import { MessageBox } from './MessageBox'
+import {
+  useCallWatson,
+  useSyncConversationStoreWithChatWindowState,
+} from './chat-window.hooks'
 import { getWatsonRequestSchema } from '~/utils/watson'
 import { type z } from 'zod'
 import { FormErrorMessage } from '@opengovsg/design-system-react'
@@ -24,37 +27,59 @@ import {
   MAX_QUESTION_LENGTH,
   MIN_QUESTION_LENGTH,
 } from '~/server/modules/watson/watson.constants'
-import { v4 as uuidv4 } from 'uuid'
 import { type WatsonErrorRes } from '~/server/modules/watson/watson.types'
 import { EmptyChatDisplay } from './EmptyChatDisplay'
+import { useSetAtom } from 'jotai'
+import {
+  FAKE_CHAT_ID,
+  updateChatMessagesAtom,
+  updateConversationInputDisabledAtom,
+  updateConversationIsGeneratingResponseAtom,
+  useGetCurrentConversation,
+} from './chat-window.atoms'
 
-const ChatWindow = () => {
-  const [conversation] = trpc.watson.getConversation.useSuspenseQuery()
-  const [isGeneratingResponse, setIsGeneratingResponse] = useState(false)
-  const [isInputDisabled, setIsInputDisabled] = useState(false)
+const ChatWindow = ({
+  conversationId: routeConversationId,
+}: {
+  conversationId?: number
+}) => {
+  const conversationId = routeConversationId ?? FAKE_CHAT_ID
+  const conversation = useGetCurrentConversation(conversationId)
+
+  const [fetchedChatMessages] =
+    trpc.watson.getChatMessagesForConversation.useSuspenseQuery({
+      conversationId,
+    })
+
+  const setIsGeneratingResponse = useSetAtom(
+    updateConversationIsGeneratingResponseAtom,
+  )
+  const setIsInputDisabled = useSetAtom(updateConversationInputDisabledAtom)
+
+  const updateConversation = useSetAtom(updateChatMessagesAtom)
+  const isInputDisabled = conversation.isInputDisabled
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [isSuggestionLoading, setIsSuggestionLoading] = useState<boolean>(false)
 
-  const utils = trpc.useContext()
+  useSyncConversationStoreWithChatWindowState({
+    conversationId,
+    chatMessages: fetchedChatMessages,
+  })
 
-  // TODO: List virtualisation in the future
-  const [storedConversation, setStoredConversation] = useState<
-    ({ id: string } & MessageBoxProps)[]
-  >(
-    conversation.chatMessages.map((msg) => ({
-      ...msg,
-      id: msg.id.toString(),
-      message: msg.rawMessage,
-    })),
-  )
+  const utils = trpc.useContext()
 
   const askQuestionForm = useZodForm({
     schema: getWatsonRequestSchema,
     defaultValues: {
       question: '',
-      conversationId: conversation.conversationId,
+      conversationId: conversationId,
     },
   })
+
+  const chatMessages = conversation.messages
+  const updateChatMessage = useSetAtom(updateChatMessagesAtom)
+
+  const isGeneratingResponse = !!conversation.isGeneratingResponse
 
   const chatWindowRef = useRef<HTMLDivElement | null>(null)
 
@@ -62,53 +87,19 @@ const ChatWindow = () => {
     if (!!chatWindowRef.current) {
       chatWindowRef.current.scrollTo(0, chatWindowRef.current.scrollHeight)
     }
-  }, [storedConversation, suggestions])
+  }, [conversation, suggestions])
 
   const shouldShowSuggestions =
-    !!storedConversation[storedConversation.length - 1]?.isErrorMessage &&
+    !!conversation.messages[conversation.messages.length - 1]?.isErrorMessage &&
     !isSuggestionLoading
 
   const handleOnAgentResponse = useCallback(
     (chunk: string, isError?: boolean) => {
-      setIsGeneratingResponse(false)
+      setIsGeneratingResponse({ conversationId, isGeneratingResponse: false })
 
-      setStoredConversation((prev) => {
-        // find last index of agent message
-        const lastIndexValue = prev[prev.length - 1]
-
-        // This should never happen
-        if (lastIndexValue === undefined) {
-          throw new Error(
-            'Last index should always be defined when handling chunks',
-          )
-        }
-
-        // This means we have yet to process first chunk from agent response
-        if (lastIndexValue.type === 'USER') {
-          return [
-            ...prev,
-            {
-              type: 'AGENT',
-              id: uuidv4(),
-              isErrorMessage: isError,
-              message: chunk,
-            },
-          ]
-        }
-
-        // Append to the last chunk in the chat response
-        // TODO: Only render latest chat message in the dom instead of re-rendering entire patch on each chunk
-        return [
-          ...prev.slice(0, prev.length - 1),
-          {
-            ...lastIndexValue,
-            message: lastIndexValue.message + chunk,
-            isErrorMessage: isError,
-          },
-        ]
-      })
+      updateConversation({ conversationId, chunk, isError })
     },
-    [],
+    [conversationId, setIsGeneratingResponse, updateConversation],
   )
 
   /** Sets message to be error message and also gives suggestions */
@@ -124,7 +115,7 @@ const ChatWindow = () => {
     [handleOnAgentResponse, utils.watson.getSuggestions],
   )
 
-  const callWatson = useCallWatson({
+  const { sendQuestion } = useCallWatson({
     handleChunk: handleOnAgentResponse,
     handleError,
   })
@@ -150,32 +141,36 @@ const ChatWindow = () => {
 
     askQuestionForm.reset({
       question: '',
-      conversationId: conversation.conversationId,
+      conversationId: conversationId,
     })
 
-    setIsGeneratingResponse(true)
-    setIsInputDisabled(true)
+    setIsGeneratingResponse({ conversationId, isGeneratingResponse: true })
+    setIsInputDisabled({ conversationId, isDisabled: true })
 
-    setStoredConversation((prev) => [
-      ...prev,
-      {
-        id: uuidv4(),
-        message: data.question,
-        type: 'USER',
-      },
-    ])
+    updateChatMessage({
+      isUserUpdate: true,
+      chunk: data.question,
+      conversationId,
+    })
 
-    await callWatson(data)
+    await sendQuestion(data)
 
-    setIsInputDisabled(false)
+    setIsInputDisabled({ conversationId, isDisabled: false })
   }
+
+  // Hack to keep global state and controlled form state in sync, TODO: remove form state completely
+  useEffect(() => {
+    if (conversationId) {
+      askQuestionForm.setValue('conversationId', conversationId)
+    }
+  }, [askQuestionForm, conversationId])
 
   return (
     <form
       onSubmit={askQuestionForm.handleSubmit(async (data) => {
         await handleSubmitData(data)
       })}
-      style={{ width: '100%', height: '100%' }}
+      style={{ width: '100%', height: '100%', overflowY: 'hidden' }}
     >
       <Grid
         gridTemplateRows={`1fr min-content`}
@@ -190,9 +185,10 @@ const ChatWindow = () => {
           spacing={6}
           w="100%"
           pt={8}
+          pb={4}
           overflowY="scroll"
         >
-          {storedConversation.length === 0 && (
+          {chatMessages.length === 0 && (
             <EmptyChatDisplay
               onClickSuggestion={(suggestion) =>
                 askQuestionForm.setValue('question', suggestion)
@@ -200,8 +196,9 @@ const ChatWindow = () => {
             />
           )}
 
-          {storedConversation.map((chatMsg) => (
+          {chatMessages.map((chatMsg) => (
             <MessageBox
+              id={chatMsg.id}
               key={chatMsg.id}
               type={chatMsg.type}
               message={chatMsg.message}
@@ -210,6 +207,7 @@ const ChatWindow = () => {
 
           {isGeneratingResponse && (
             <MessageBox
+              id={'LOADING_RESPONSE'}
               type={'LOADING-RESPONSE'}
               message={'Churning insights...'}
             />
@@ -225,7 +223,7 @@ const ChatWindow = () => {
           )}
         </VStack>
 
-        <VStack my={4}>
+        <VStack mb={4}>
           <FormControl
             isInvalid={!!askQuestionForm.formState.errors.question?.message}
           >

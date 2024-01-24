@@ -43,9 +43,9 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST')
     return res.status(404).json({ message: 'not found' })
 
-  const isAuthed = await isAuthenticated(req, res)
+  const isAuthedRes = await isAuthenticated(req, res)
 
-  if (!isAuthed) {
+  if (isAuthedRes.type === 'failure') {
     return res.status(401).json({ message: 'unauthenticated' })
   }
 
@@ -60,6 +60,7 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
   /** Step 1: Get the initial SQL query */
   let finalAgentResponse = UNABLE_TO_FIND_ANSWER_MESSAGE
   const { question, conversationId } = requestBody.data
+
   const loggerMetadata: Record<string, unknown> = {}
   const chatHistoryVectorService = new ChatMessageVectorService(prisma)
 
@@ -112,6 +113,21 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
     rawMessage: finalAgentResponse,
     userType: 'AGENT',
     conversationId,
+  })
+
+  const latestChatMsgDate = await prisma.chatMessage.findFirstOrThrow({
+    where: { conversation: { id: conversationId } },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      createdAt: true,
+    },
+  })
+
+  await prisma.conversation.update({
+    where: { id: conversationId },
+    data: {
+      latestChatMessageAt: latestChatMsgDate?.createdAt,
+    },
   })
 
   res.end()
@@ -268,12 +284,26 @@ function setStreamHeaders(res: NextApiResponse) {
   res.flushHeaders()
 }
 
-async function isAuthenticated(req: NextApiRequest, res: NextApiResponse) {
+type isAuthenticatedResponse = SuccessAuthentication | FailureAuthentication
+
+type SuccessAuthentication = {
+  type: 'success'
+  user: { id: string }
+}
+
+type FailureAuthentication = {
+  type: 'failure'
+}
+
+async function isAuthenticated(
+  req: NextApiRequest,
+  res: NextApiResponse,
+): Promise<isAuthenticatedResponse> {
   const session = await getIronSession<SessionData>(req, res, sessionOptions)
 
   // We just throw TRPCErrors here to remain consistent, even though this is a rest call
   if (!session?.userId) {
-    return false
+    return { type: 'failure' }
   }
 
   // this code path is needed if a user does not exist in the database as they were deleted, but the session was active before
@@ -283,10 +313,10 @@ async function isAuthenticated(req: NextApiRequest, res: NextApiResponse) {
   })
 
   if (user === null) {
-    return false
+    return { type: 'failure' }
   }
 
-  return true
+  return { type: 'success', user: { id: user.id } }
 }
 
 export default handler
