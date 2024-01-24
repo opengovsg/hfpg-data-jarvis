@@ -37,11 +37,7 @@ const parseErrorPayload = (
   }
 }
 
-export const useCallWatson = ({
-  handleError,
-}: {
-  handleError: (question: string) => void
-}) => {
+export const useCallWatson = () => {
   const utils = trpc.useContext()
 
   const router = useRouter()
@@ -62,8 +58,9 @@ export const useCallWatson = ({
       conversationId: number
     }) => {
       let conversationId: number
+      const isFakeChat = formConversationId === FAKE_CHAT_ID
 
-      if (formConversationId === FAKE_CHAT_ID) {
+      if (isFakeChat) {
         const convo = await createConversation.mutateAsync({ question })
         conversationId = convo.id
 
@@ -110,20 +107,34 @@ export const useCallWatson = ({
           continue
         }
 
-        // Only set false on first defined chunk
         setIsGenerating({ conversationId, isGeneratingResponse: false })
+
+        if (formConversationId === FAKE_CHAT_ID) {
+          setIsGenerating({
+            conversationId: FAKE_CHAT_ID,
+            isGeneratingResponse: false,
+          })
+        }
 
         // Check if it is an error, then handle it if it is
         const parsedErrorDetails = parseErrorPayload(value)
 
         if (parsedErrorDetails.type === 'error') {
+          setIsGenerating({ conversationId, isGeneratingResponse: false })
+
           updateChatMessages({
             conversationId,
             chunk: parsedErrorDetails.error.message,
             isError: true,
           })
-          handleError(question)
         } else {
+          if (formConversationId === FAKE_CHAT_ID) {
+            updateChatMessages({
+              conversationId: FAKE_CHAT_ID,
+              chunk: value,
+              isError: false,
+            })
+          }
           updateChatMessages({ conversationId, chunk: value, isError: false })
         }
       }
@@ -136,7 +147,6 @@ export const useCallWatson = ({
     },
     [
       createConversation,
-      handleError,
       router,
       setConversationStore,
       setIsGenerating,

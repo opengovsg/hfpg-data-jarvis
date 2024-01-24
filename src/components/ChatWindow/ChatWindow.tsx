@@ -10,7 +10,7 @@ import {
 } from '@chakra-ui/react'
 import ResizeTextarea from 'react-textarea-autosize'
 import _ from 'lodash'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { BiSend } from 'react-icons/bi'
 import { useZodForm } from '~/lib/form'
 import { trpc } from '~/utils/trpc'
@@ -77,6 +77,30 @@ const ChatWindow = ({
   const chatWindowRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
+    async function fetchSuggestions(question: string) {
+      setIsSuggestionLoading(true)
+      const suggestions = await utils.watson.getSuggestions.fetch({ question })
+      setIsSuggestionLoading(false)
+
+      setSuggestions(suggestions)
+    }
+
+    if (
+      conversation.messages[conversation.messages.length - 1]?.isErrorMessage
+    ) {
+      const lastUserQuestion =
+        conversation.messages[
+          conversation.messages.findLastIndex((m) => m.type === 'USER')!
+        ]!
+
+      void fetchSuggestions(lastUserQuestion.message)
+    }
+    // disabled due to infinite loop, we use this hack so that suggestions show up on when fake chat message > message window redirects happen
+    // TODO: Clean up state management after hackathon
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
     if (!!chatWindowRef.current) {
       chatWindowRef.current.scrollTo(0, chatWindowRef.current.scrollHeight)
     }
@@ -86,21 +110,7 @@ const ChatWindow = ({
     !!conversation.messages[conversation.messages.length - 1]?.isErrorMessage &&
     !isSuggestionLoading
 
-  /** Sets message to be error message and also gives suggestions */
-  const handleError = useCallback(
-    async (question: string) => {
-      setIsSuggestionLoading(true)
-      const suggestions = await utils.watson.getSuggestions.fetch({ question })
-      setIsSuggestionLoading(false)
-
-      setSuggestions(suggestions)
-    },
-    [utils.watson.getSuggestions],
-  )
-
-  const { sendQuestion } = useCallWatson({
-    handleError,
-  })
+  const { sendQuestion } = useCallWatson()
 
   const handleSubmitData = async (
     data: z.infer<typeof getWatsonRequestSchema>,

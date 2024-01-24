@@ -85,9 +85,7 @@ export const updateChatMessagesAtom = atom(
 
     // This should never happen
     if (lastChatMessage === undefined) {
-      throw new Error(
-        'Last index should always be defined when handling chunks',
-      )
+      return
     }
 
     // This means we have yet to process first chunk from agent response
