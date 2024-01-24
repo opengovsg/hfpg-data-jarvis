@@ -3,11 +3,18 @@ import {
   type WatsonErrorRes,
   WatsonErrorResSchema,
 } from '~/server/modules/watson/watson.types'
-import { type RouterOutput, trpc } from '~/utils/trpc'
+import { trpc } from '~/utils/trpc'
 import { type GetWatsonRequest } from '~/utils/watson'
 import { useRouter } from 'next/router'
-import { FAKE_CHAT_ID, conversationStoreAtom } from './chat-window.atoms'
-import { useAtom } from 'jotai'
+import {
+  FAKE_CHAT_ID,
+  conversationStoreAtom,
+  updateChatMessagesAtom,
+  updateConversationInputDisabledAtom,
+  updateConversationIsGeneratingResponseAtom,
+} from './chat-window.atoms'
+import { useAtom, useSetAtom } from 'jotai'
+import { type MessageBoxProps } from './MessageBox'
 
 /** Checks if data-stream return is a valid json object of `WatsonErrorRes` then handle it accordingly */
 const parseErrorPayload = (
@@ -30,17 +37,20 @@ const parseErrorPayload = (
 }
 
 export const useCallWatson = ({
-  handleChunk,
   handleError,
 }: {
-  handleError: (error: WatsonErrorRes, question: string) => void
-  handleChunk: (chunk: string) => void
+  handleError: (question: string) => void
 }) => {
   const utils = trpc.useContext()
 
   const router = useRouter()
 
   const createConversation = trpc.watson.createConversation.useMutation()
+
+  const setConversationStore = useSetAtom(conversationStoreAtom)
+  const setIsInputDisabled = useSetAtom(updateConversationInputDisabledAtom)
+  const updateChatMessages = useSetAtom(updateChatMessagesAtom)
+  const setIsGenerating = useSetAtom(updateConversationIsGeneratingResponseAtom)
 
   const sendQuestion = useCallback(
     async ({
@@ -55,6 +65,15 @@ export const useCallWatson = ({
       if (formConversationId === FAKE_CHAT_ID) {
         const convo = await createConversation.mutateAsync({ question })
         conversationId = convo.id
+
+        // We clone FAKE_CHAT_ID here which will have the user's question at this point
+        // This logic is only needed during the initial new chat phase where we dont want to create a conversation in the backend
+        setConversationStore((prev) => ({
+          ...prev,
+          [conversationId]: prev[FAKE_CHAT_ID]!,
+        }))
+
+        // Take the fake conversation id and clone the state
       } else {
         conversationId = formConversationId
       }
@@ -90,15 +109,25 @@ export const useCallWatson = ({
           continue
         }
 
+        // Only set false on first defined chunk
+        setIsGenerating({ conversationId, isGeneratingResponse: false })
+
         // Check if it is an error, then handle it if it is
         const parsedErrorDetails = parseErrorPayload(value)
 
         if (parsedErrorDetails.type === 'error') {
-          handleError(parsedErrorDetails.error, question)
+          updateChatMessages({
+            conversationId,
+            chunk: parsedErrorDetails.error.message,
+            isError: true,
+          })
+          handleError(question)
         } else {
-          handleChunk(value ?? '')
+          updateChatMessages({ conversationId, chunk: value, isError: false })
         }
       }
+
+      setIsInputDisabled({ conversationId, isDisabled: false })
 
       if (formConversationId === FAKE_CHAT_ID) {
         await router.push(`/chat/${conversationId}`)
@@ -106,9 +135,12 @@ export const useCallWatson = ({
     },
     [
       createConversation,
-      handleChunk,
       handleError,
       router,
+      setConversationStore,
+      setIsGenerating,
+      setIsInputDisabled,
+      updateChatMessages,
       utils.watson.getPastConversations,
     ],
   )
@@ -121,7 +153,7 @@ export const useSyncConversationStoreWithChatWindowState = ({
   chatMessages,
 }: {
   conversationId: number
-  chatMessages: RouterOutput['watson']['getChatMessagesForConversation']
+  chatMessages: MessageBoxProps[]
 }) => {
   const [conversationStore, setConversationStore] = useAtom(
     conversationStoreAtom,
@@ -136,11 +168,7 @@ export const useSyncConversationStoreWithChatWindowState = ({
           ...prev,
           [conversationId]: {
             ...prevConvo,
-            messages: chatMessages.map((msg) => ({
-              ...msg,
-              message: msg.rawMessage,
-              id: msg.id.toString(),
-            })),
+            messages: chatMessages,
           },
         }
       })

@@ -1,4 +1,4 @@
-import { VStack, Text, HStack } from '@chakra-ui/react'
+import { VStack, Text, HStack, Skeleton } from '@chakra-ui/react'
 import { SidebarHeader } from './SidebarHeader'
 import { trpc } from '~/utils/trpc'
 import { SIDE_MENU_ITEM_PX } from './sidemenu.constants'
@@ -7,12 +7,10 @@ import { IconButton, Input, useToast } from '@opengovsg/design-system-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ProfileMenu } from './ProfileMenu'
 import router from 'next/router'
+import Suspense from '../Suspense'
 
 /** TODO: Allow for chat histories here. Also create a new chat instance every time a user newly visits a page */
 export const SideMenu = () => {
-  const [pastConversations] =
-    trpc.watson.getPastConversations.useSuspenseQuery()
-
   return (
     <VStack
       bgColor="base.content.strong"
@@ -23,16 +21,37 @@ export const SideMenu = () => {
     >
       <SidebarHeader />
       <VStack w="100%" spacing={4} height="100%" overflowY="scroll">
-        {Object.entries(pastConversations).map(([bucket, conversations]) => (
-          <PastConversationSection
-            key={bucket}
-            bucket={bucket}
-            conversationDetails={conversations}
-          />
-        ))}
+        <Suspense
+          fallback={
+            <>
+              {[...Array(10)].map((key) => (
+                <Skeleton key={key} w="100%" h="40px" />
+              ))}
+            </>
+          }
+        >
+          <ConversationSuspenseWrapper />
+        </Suspense>
       </VStack>
       <ProfileMenu />
     </VStack>
+  )
+}
+
+const ConversationSuspenseWrapper = () => {
+  const [pastConversations] =
+    trpc.watson.getPastConversations.useSuspenseQuery()
+
+  return (
+    <>
+      {Object.entries(pastConversations).map(([bucket, conversations]) => (
+        <PastConversationSection
+          key={bucket}
+          bucket={bucket}
+          conversationDetails={conversations}
+        />
+      ))}
+    </>
   )
 }
 
@@ -94,7 +113,9 @@ const ConversationTitle = ({
   const readOnlyProps = {
     _hover: { bgColor: 'whiteAlpha.200', cursor: 'pointer' },
     _active: { bgColor: 'whiteAlpha.100' },
-    onClick: () => router.push(`/chat/${convoId}`),
+    onClick: async () => {
+      await router.push(`/chat/${convoId}`)
+    },
   }
 
   const toast = useToast({ isClosable: true })

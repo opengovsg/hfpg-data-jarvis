@@ -14,7 +14,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { BiSend } from 'react-icons/bi'
 import { useZodForm } from '~/lib/form'
 import { trpc } from '~/utils/trpc'
-import { MessageBox } from './MessageBox'
+import { MessageBox, type MessageBoxProps } from './MessageBox'
 import {
   useCallWatson,
   useSyncConversationStoreWithChatWindowState,
@@ -27,11 +27,9 @@ import {
   MAX_QUESTION_LENGTH,
   MIN_QUESTION_LENGTH,
 } from '~/server/modules/watson/watson.constants'
-import { type WatsonErrorRes } from '~/server/modules/watson/watson.types'
 import { EmptyChatDisplay } from './EmptyChatDisplay'
 import { useSetAtom } from 'jotai'
 import {
-  FAKE_CHAT_ID,
   updateChatMessagesAtom,
   updateConversationInputDisabledAtom,
   updateConversationIsGeneratingResponseAtom,
@@ -39,24 +37,19 @@ import {
 } from './chat-window.atoms'
 
 const ChatWindow = ({
-  conversationId: routeConversationId,
+  conversationId,
+  chatMessages: fetchedChatMessages,
 }: {
-  conversationId?: number
+  chatMessages: MessageBoxProps[]
+  conversationId: number
 }) => {
-  const conversationId = routeConversationId ?? FAKE_CHAT_ID
-  const conversation = useGetCurrentConversation(conversationId)
-
-  const [fetchedChatMessages] =
-    trpc.watson.getChatMessagesForConversation.useSuspenseQuery({
-      conversationId,
-    })
-
   const setIsGeneratingResponse = useSetAtom(
     updateConversationIsGeneratingResponseAtom,
   )
   const setIsInputDisabled = useSetAtom(updateConversationInputDisabledAtom)
 
-  const updateConversation = useSetAtom(updateChatMessagesAtom)
+  const conversation = useGetCurrentConversation(conversationId)
+
   const isInputDisabled = conversation.isInputDisabled
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [isSuggestionLoading, setIsSuggestionLoading] = useState<boolean>(false)
@@ -93,30 +86,19 @@ const ChatWindow = ({
     !!conversation.messages[conversation.messages.length - 1]?.isErrorMessage &&
     !isSuggestionLoading
 
-  const handleOnAgentResponse = useCallback(
-    (chunk: string, isError?: boolean) => {
-      setIsGeneratingResponse({ conversationId, isGeneratingResponse: false })
-
-      updateConversation({ conversationId, chunk, isError })
-    },
-    [conversationId, setIsGeneratingResponse, updateConversation],
-  )
-
   /** Sets message to be error message and also gives suggestions */
   const handleError = useCallback(
-    async (error: WatsonErrorRes, question: string) => {
-      handleOnAgentResponse(error.message, true)
+    async (question: string) => {
       setIsSuggestionLoading(true)
       const suggestions = await utils.watson.getSuggestions.fetch({ question })
       setIsSuggestionLoading(false)
 
       setSuggestions(suggestions)
     },
-    [handleOnAgentResponse, utils.watson.getSuggestions],
+    [utils.watson.getSuggestions],
   )
 
   const { sendQuestion } = useCallWatson({
-    handleChunk: handleOnAgentResponse,
     handleError,
   })
 
@@ -154,8 +136,6 @@ const ChatWindow = ({
     })
 
     await sendQuestion(data)
-
-    setIsInputDisabled({ conversationId, isDisabled: false })
   }
 
   // Hack to keep global state and controlled form state in sync, TODO: remove form state completely
@@ -188,7 +168,7 @@ const ChatWindow = ({
           pb={4}
           overflowY="scroll"
         >
-          {chatMessages.length === 0 && (
+          {fetchedChatMessages.length === 0 && (
             <EmptyChatDisplay
               onClickSuggestion={(suggestion) =>
                 askQuestionForm.setValue('question', suggestion)

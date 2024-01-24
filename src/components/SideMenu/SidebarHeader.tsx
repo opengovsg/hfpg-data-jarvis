@@ -4,6 +4,7 @@ import { BsPencilSquare } from 'react-icons/bs'
 import { useRouter } from 'next/router'
 import { useSetAtom } from 'jotai'
 import {
+  DEFAULT_FAKE_CHAT_ID_STATE,
   FAKE_CHAT_ID,
   conversationStoreAtom,
 } from '../ChatWindow/chat-window.atoms'
@@ -25,13 +26,9 @@ export const SidebarHeader = () => {
       onClick={async () => {
         setConversationStoreState((prev) => ({
           ...prev,
-          [FAKE_CHAT_ID]: {
-            messages: [],
-            isGeneratingResponse: false,
-            isInputDisabled: false,
-          },
+          [FAKE_CHAT_ID]: DEFAULT_FAKE_CHAT_ID_STATE,
         }))
-        await router.push('/chat')
+        void router.push('/chat')
       }}
     >
       <Text textStyle="subhead-2">New Chat</Text>

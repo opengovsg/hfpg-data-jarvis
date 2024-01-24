@@ -14,25 +14,25 @@ export type ConversationStore = Record<
 // For use in initial chat window without messages
 export const FAKE_CHAT_ID = -1 as const
 
+export const DEFAULT_FAKE_CHAT_ID_STATE = {
+  messages: [],
+  isInputDisabled: false,
+  isGeneratingResponse: false,
+}
+
 /** TODO: This state management is cursed af, redo after hackathon if this becomes a real thing */
+/** TODO: conversationStoreAtom should have max number of keys and function like an LRU cache, otherwise you might run into memory errors  */
 export const conversationStoreAtom = atom<ConversationStore>({
-  [FAKE_CHAT_ID]: {
-    messages: [],
-    isInputDisabled: false,
-    isGeneratingResponse: false,
-  },
+  [FAKE_CHAT_ID]: DEFAULT_FAKE_CHAT_ID_STATE,
 })
 
 export const useGetCurrentConversation = (conversationId: number) => {
   const [conversationStore] = useAtom(conversationStoreAtom)
 
-  if (conversationId === undefined)
-    return { messages: [], isInputDisabled: false, isGeneratingResponse: false }
-
   const conversation = conversationStore[conversationId]
 
   if (conversation === undefined) {
-    return { messages: [], isInputDisabled: false, isGeneratingResponse: false }
+    return DEFAULT_FAKE_CHAT_ID_STATE
   }
 
   return conversation
