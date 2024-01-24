@@ -47,7 +47,6 @@ const processRemainingLeaseIntoTimeInMonths = (remainingLease: string) => {
     )
 
     if (isNaN(parsedMonths)) {
-      console.log('>> tesT', parsedMonths)
       throw new Error('Expected number for months, received other datatype')
     }
 

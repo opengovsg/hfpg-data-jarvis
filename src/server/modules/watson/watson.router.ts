@@ -2,21 +2,50 @@ import { protectedProcedure, router } from '~/server/trpc'
 import { PreviousSqlVectorService } from './sql-vector.service'
 import { z } from 'zod'
 import { generateEmbeddingFromOpenAi } from './vector.utils'
+import { mapDateToChatHistoryGroup } from './watson.utils'
+import _ from 'lodash'
+import { prisma } from '~/server/prisma'
+import { FAKE_CHAT_ID } from '~/components/ChatWindow/chat-window.atoms'
 
 export const watsonRouter = router({
-  getConversation: protectedProcedure.query(
+  getPastConversations: protectedProcedure.query(
     async ({ ctx: { prisma, user } }) => {
-      // TODO: Change this when we support multiple conversations
-      let conversation = await prisma.conversation.findFirst({
+      const pastConversations = await prisma.conversation.findMany({
         where: { userId: user.id },
+        select: { id: true, title: true, latestChatMessageAt: true },
       })
 
-      // for now just create a conversation if user does not have convo
-      if (conversation === null) {
-        conversation = await prisma.conversation.create({
-          data: { title: '', userId: user.id },
-        })
-      }
+      const convosWithBuckets = pastConversations.map((convo) => ({
+        ...convo,
+        lastUpdatedAtBucket: mapDateToChatHistoryGroup(
+          convo.latestChatMessageAt,
+        ),
+        latestChatMessageAt: convo.latestChatMessageAt,
+      }))
+
+      return _.groupBy(
+        convosWithBuckets,
+        ({ lastUpdatedAtBucket }) => lastUpdatedAtBucket,
+      )
+    },
+  ),
+  createConversation: protectedProcedure
+    .input(z.object({ question: z.string() }))
+    .mutation(async ({ ctx: { user }, input: { question } }) => {
+      return await prisma.conversation.create({
+        data: { userId: user.id, title: question.slice(0, 30) },
+        select: { id: true },
+      })
+    }),
+  getChatMessagesForConversation: protectedProcedure
+    .input(z.object({ conversationId: z.number() }))
+    .query(async ({ ctx: { prisma }, input: { conversationId } }) => {
+      // Hack for initial convo
+      if (conversationId === FAKE_CHAT_ID) return []
+
+      const conversation = await prisma.conversation.findFirstOrThrow({
+        where: { id: conversationId },
+      })
 
       const chatMessages = await prisma.chatMessage.findMany({
         where: { conversationId: conversation.id },
@@ -29,9 +58,8 @@ export const watsonRouter = router({
         },
       })
 
-      return { conversationId: conversation.id, chatMessages }
-    },
-  ),
+      return chatMessages
+    }),
   // TODO: Extend this to be dataset agnostic in the future. It will ideally take an input of the datasets we support
   getSuggestions: protectedProcedure
     .input(z.object({ question: z.string() }))
@@ -47,5 +75,14 @@ export const watsonRouter = router({
       })
 
       return nearestQuestions.map((qn) => qn.rawQuestion)
+    }),
+
+  updateConversationTitle: protectedProcedure
+    .input(z.object({ conversationId: z.number(), title: z.string() }))
+    .mutation(async ({ ctx: { prisma }, input: { conversationId, title } }) => {
+      await prisma.conversation.update({
+        where: { id: conversationId },
+        data: { title },
+      })
     }),
 })

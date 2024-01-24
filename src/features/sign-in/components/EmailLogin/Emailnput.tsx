@@ -40,7 +40,9 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSuccess }) => {
   }, [router.query.error, setError])
 
   const handleSignIn = handleSubmit(({ email }) => {
-    return loginMutation.mutate({ email })
+    const res = loginMutation.mutate({ email })
+
+    return res
   })
 
   return (

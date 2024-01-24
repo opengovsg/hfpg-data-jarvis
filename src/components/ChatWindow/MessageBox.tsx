@@ -18,6 +18,7 @@ export type MessageBoxProps = {
   message: string
   type: 'AGENT' | 'USER' | 'LOADING-RESPONSE'
   isErrorMessage?: boolean
+  id: string
 }
 
 export const MessageBox = ({ message, type }: MessageBoxProps) => {
