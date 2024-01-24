@@ -15,6 +15,7 @@ import {
 } from './chat-window.atoms'
 import { useAtom, useSetAtom } from 'jotai'
 import { type MessageBoxProps } from './MessageBox'
+import { CHAT } from '~/lib/routes'
 
 /** Checks if data-stream return is a valid json object of `WatsonErrorRes` then handle it accordingly */
 const parseErrorPayload = (
@@ -130,7 +131,7 @@ export const useCallWatson = ({
       setIsInputDisabled({ conversationId, isDisabled: false })
 
       if (formConversationId === FAKE_CHAT_ID) {
-        await router.push(`/chat/${conversationId}`)
+        await router.push(`${CHAT}/${conversationId}`)
       }
     },
     [

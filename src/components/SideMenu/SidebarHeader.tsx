@@ -8,6 +8,7 @@ import {
   FAKE_CHAT_ID,
   conversationStoreAtom,
 } from '../ChatWindow/chat-window.atoms'
+import { CHAT } from '~/lib/routes'
 
 export const SidebarHeader = () => {
   const router = useRouter()
@@ -28,7 +29,7 @@ export const SidebarHeader = () => {
           ...prev,
           [FAKE_CHAT_ID]: DEFAULT_FAKE_CHAT_ID_STATE,
         }))
-        void router.push('/chat')
+        void router.push(CHAT)
       }}
     >
       <Text textStyle="subhead-2">New Chat</Text>

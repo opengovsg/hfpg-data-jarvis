@@ -45,18 +45,17 @@ export const ProfileMenu = () => {
           w="full"
           left={0}
           borderRadius={4}
-          bgColor="whiteAlpha.400"
-          px={2}
-          border="1px"
-          borderColor="whiteAlpha.500"
+          bgColor="gray.200"
         >
           <Button
             w="full"
             leftIcon={<BiLogOut />}
             justifyContent="start"
             variant="clear"
-            p={0}
-            color="white"
+            py={6}
+            px={2}
+            color="blackAlpha.700"
+            _hover={{ bgColor: 'gray.300' }}
             size="xs"
             onClick={() => logout()}
           >

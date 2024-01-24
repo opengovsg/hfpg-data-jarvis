@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ProfileMenu } from './ProfileMenu'
 import router from 'next/router'
 import Suspense from '../Suspense'
+import { CHAT } from '~/lib/routes'
 
 /** TODO: Allow for chat histories here. Also create a new chat instance every time a user newly visits a page */
 export const SideMenu = () => {
@@ -114,7 +115,7 @@ const ConversationTitle = ({
     _hover: { bgColor: 'whiteAlpha.200', cursor: 'pointer' },
     _active: { bgColor: 'whiteAlpha.100' },
     onClick: async () => {
-      await router.push(`/chat/${convoId}`)
+      await router.push(`${CHAT}/${convoId}`)
     },
   }
 

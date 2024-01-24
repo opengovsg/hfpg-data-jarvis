@@ -4,7 +4,7 @@ import { SgidErrorModal } from './SgidErrorModal'
 import { useRouter } from 'next/router'
 import { safeSchemaJsonParse } from '~/utils/zod'
 import { z } from 'zod'
-import { HOME } from '~/lib/routes'
+import { CHAT } from '~/lib/routes'
 
 export const SgidErrorFallback: ComponentType<FallbackProps> = ({ error }) => {
   const router = useRouter()
@@ -18,7 +18,7 @@ export const SgidErrorFallback: ComponentType<FallbackProps> = ({ error }) => {
     if (parsed.success) {
       return parsed.data.landingUrl
     }
-    return HOME
+    return CHAT
   }, [router.query.state])
 
   return <SgidErrorModal message={error.message} redirectUrl={redirectUrl} />

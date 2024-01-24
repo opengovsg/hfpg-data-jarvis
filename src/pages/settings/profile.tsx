@@ -33,7 +33,7 @@ import { APP_GRID_COLUMN, APP_GRID_TEMPLATE_COLUMN } from '~/constants/layouts'
 import { useMe } from '~/features/me/api'
 import { AppGrid } from '~/templates/AppGrid'
 import { registerWithDebounce } from '~/utils/registerWithDebounce'
-import { HOME } from '~/lib/routes'
+import { CHAT } from '~/lib/routes'
 
 const Profile: NextPageWithLayout = () => {
   const { me } = useMe()
@@ -126,7 +126,7 @@ const Profile: NextPageWithLayout = () => {
         py="1rem"
         px={{ base: '1rem', lg: 0 }}
       >
-        <BackBannerLink gridColumn={APP_GRID_COLUMN} href={`/${HOME}`}>
+        <BackBannerLink gridColumn={APP_GRID_COLUMN} href={`/${CHAT}`}>
           Back to home
         </BackBannerLink>
       </AppGrid>

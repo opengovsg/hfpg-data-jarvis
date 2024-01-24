@@ -16,7 +16,7 @@ import { useMemo, useState } from 'react'
 import { BiFace, BiHomeSmile, BiMenu } from 'react-icons/bi'
 import { ADMIN_DASHBAR_WIDTHS, ADMIN_NAVBAR_HEIGHT } from '~/constants/layouts'
 import { useMe } from '~/features/me/api'
-import { HOME, PROFILE, SETTINGS_PROFILE } from '~/lib/routes'
+import { CHAT, PROFILE, SETTINGS_PROFILE } from '~/lib/routes'
 
 export const DashSidebar = () => {
   const [showWhenSmallMobile, setShowWhenSmallMobile] = useState(false)
@@ -97,8 +97,8 @@ export const DashSidebar = () => {
           <SidebarItem
             icon={BiHomeSmile}
             as={Link}
-            href={HOME}
-            isActive={pathname === HOME}
+            href={CHAT}
+            isActive={pathname === CHAT}
             title="Home"
             px={{ base: '1.125rem', sm: '0.75rem', md: '1rem' }}
             borderRadius={{ base: 0, md: 'md' }}

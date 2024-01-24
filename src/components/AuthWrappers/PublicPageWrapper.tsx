@@ -2,7 +2,7 @@ import { useRouter } from 'next/router'
 import { type PropsWithChildren } from 'react'
 import { CALLBACK_URL_KEY } from '~/constants/params'
 import { useLoginState } from '~/features/auth'
-import { HOME } from '~/lib/routes'
+import { CHAT } from '~/lib/routes'
 import { FullscreenSpinner } from '../FullscreenSpinner'
 
 type PublicPageWrapperProps =
@@ -24,7 +24,7 @@ export const PublicPageWrapper = ({
 
   if (hasLoginStateFlag && rest.strict) {
     const callbackUrl =
-      rest.redirectUrl ?? String(router.query[CALLBACK_URL_KEY] ?? HOME)
+      rest.redirectUrl ?? String(router.query[CALLBACK_URL_KEY] ?? CHAT)
     void router.replace(callbackUrl)
     return <FullscreenSpinner />
   }

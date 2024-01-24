@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import { Divider, Stack } from '@chakra-ui/react'
 
 import { trpc } from '~/utils/trpc'
-import { HOME } from '~/lib/routes'
+import { CHAT } from '~/lib/routes'
 import { SgidProfileItem } from './SgidProfileItem'
 import { SgidProfileListSkeleton } from './SgidProfileListSkeleton'
 import { useLoginState } from '~/features/auth'
@@ -22,7 +22,7 @@ const _SgidProfileList = (): JSX.Element => {
     onSuccess: async () => {
       setHasLoginStateFlag()
       await utils.me.get.invalidate()
-      await router.replace(String(router.query[CALLBACK_URL_KEY] ?? HOME))
+      await router.replace(String(router.query[CALLBACK_URL_KEY] ?? CHAT))
     },
   })
 

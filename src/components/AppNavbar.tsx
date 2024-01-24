@@ -9,7 +9,7 @@ import NextLink from 'next/link'
 import { BiGlasses } from 'react-icons/bi'
 import { ADMIN_NAVBAR_HEIGHT } from '~/constants/layouts'
 import { useMe } from '~/features/me/api'
-import { SETTINGS_PROFILE } from '~/lib/routes'
+import { CHAT, SETTINGS_PROFILE } from '~/lib/routes'
 
 export const AppNavbar = (): JSX.Element => {
   const { me, logout } = useMe()
@@ -32,7 +32,7 @@ export const AppNavbar = (): JSX.Element => {
       >
         <Link
           as={NextLink}
-          href="/home"
+          href={CHAT}
           mx={{ base: 'auto', sm: 0 }}
           transition="margin 0.1s"
         >
