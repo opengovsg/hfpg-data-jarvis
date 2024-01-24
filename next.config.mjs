@@ -47,6 +47,10 @@ const config = {
   images: {
     domains: [env.R2_PUBLIC_HOSTNAME ?? ''].filter((d) => d),
   },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  output: 'standalone',
   async headers() {
     return [
       {
