@@ -3,7 +3,7 @@ import { VStack, SimpleGrid, Box, Text } from '@chakra-ui/react'
 const suggestions = [
   {
     header: 'Work out the average',
-    content: 'number of months flasts were leased for in Bishan',
+    content: 'number of months flats were leased for in Bishan',
   },
   { header: 'Find the least', content: 'expensive flat sold in Punggol' },
   {
