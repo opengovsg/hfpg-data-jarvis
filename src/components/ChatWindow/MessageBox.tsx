@@ -17,6 +17,7 @@ const WatsonIcon = () => {
 export type MessageBoxProps = {
   message: string
   type: 'AGENT' | 'USER' | 'LOADING-RESPONSE'
+  isErrorMessage?: boolean
 }
 
 export const MessageBox = ({ message, type }: MessageBoxProps) => {

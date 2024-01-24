@@ -12,6 +12,11 @@ import {
 import { astVisitor, parse, type Statement } from 'pgsql-ast-parser'
 import { VALID_TABLE_NAMES } from '../prompt/sql/types'
 
+export const doesPromptExceedTokenLimit = (prompt: string) => {
+  // appromximation that 4 char === 1 token
+  return Math.floor(prompt.length / 4) > 4096
+}
+
 /**
  * Function to normalise all errors that might arise from calling jarvis.service
  *  - Checks if OpenApiResponse has an error and normalises them to the client
@@ -27,44 +32,39 @@ export function generateResponseFromErrors({
   // TODO: Find a way to have a pino logger for this
   console.warn({ metadata, error }, 'Error occurred')
 
-  if (error instanceof TokenExceededError) {
-    return 'The data returned from your question was too long to be comprehensible. Please try aggregating or adding filters to your search.'
+  if (error instanceof TokenExceededError || error instanceof ExpensiveError) {
+    return `I’m sorry, I wasn’t able to process that. How about rephrasing or narrowing down your question?`
   }
 
   if (error instanceof UnauthorisedDbAccess) {
-    return 'The LLM was detected to have been trying to execute malicious code. Please contact us for more help if you think this is a mistake.'
-  }
-
-  if (error instanceof ExpensiveError) {
-    return `It took too long to get data for your question. Please try adding filters to your question to narrow down your search.`
+    return `My apologies, I can’t help you with that. If you have another question in mind, do feel free to ask me!`
   }
 
   if (error instanceof ClientInputError) {
     return error.message
   }
 
-  // TODO: This just means the response could be something other than an SQL query
-  return 'We are unable to generate an answer to your question. Could you try rephrasing it?'
+  return `Unfortunately, that’s not something I would know. If you’d like, try phrasing your question differently or asking me a new one! `
 }
 
-export type OpenApiRes = OpenApiSuccess | OpenApiFailure
+export type OpenAi = OpenAiSuccess | OpenAiFailure
 
-type OpenApiFailure = {
+type OpenAiFailure = {
   type: 'failure'
   // TODO: Investigate what function_call and tool_calls are. For now just treat them as failures
   reason: 'length' | 'content_filter' | 'function_call' | 'tool_calls'
 }
 
-type OpenApiSuccess = {
+type OpenAiSuccess = {
   type: 'success'
   response: string
 }
 
-// Parse response from OpenAPI. Checks if we have faced any errors from `finish_reason` and map them to comprehensible errors on our end
-export function parseOpenApiResponse(
+// Parse response from OpenAI. Checks if we have faced any errors from `finish_reason` and map them to comprehensible errors on our end
+export function parseOpenAiResponse(
   question: string,
   chatResponse: ChatCompletion,
-): OpenApiRes {
+): OpenAi {
   const latestResponse = chatResponse.choices[0]!
 
   const finishReason = latestResponse.finish_reason

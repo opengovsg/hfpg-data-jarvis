@@ -1,6 +1,6 @@
 import { type Prisma } from '@prisma/client'
 import { PreviousSqlVectorService } from '~/server/modules/watson/sql-vector.service'
-import { generateEmbeddingFromOpenApi } from '~/server/modules/watson/vector.utils'
+import { generateEmbeddingFromOpenAi } from '~/server/modules/watson/vector.utils'
 import { prisma } from '~/server/prisma'
 
 export const seedQueries = async () => {
@@ -119,7 +119,7 @@ export const seedQueries = async () => {
   await Promise.all(
     data.map(async (d) => {
       console.log(`generating embedding for ${d.rawQuestion}`)
-      const embedding = await generateEmbeddingFromOpenApi(d.rawQuestion)
+      const embedding = await generateEmbeddingFromOpenAi(d.rawQuestion)
 
       await vectorStore.storeEmbedding({
         embedding,

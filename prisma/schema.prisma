@@ -14,7 +14,7 @@ generator client {
 
 // TODO: Find a way to automatically convert all camel to snake case in the future
 // This is needed as the general PG queries from OpenAI always assumes that your column/table names are in snake case, when in reality they are in camel case, which requires double quotes to be enclosed
-// OpenAPI's response always lacks the double quotes enclosure, resulting in wrong queries
+// OpenAI's response always lacks the double quotes enclosure, resulting in wrong queries
 model HdbResaleTransaction {
   identifier      Int      @id @default(autoincrement())
   transactionDate DateTime @map("transaction_date")

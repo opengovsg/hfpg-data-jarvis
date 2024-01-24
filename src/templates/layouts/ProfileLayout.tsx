@@ -1,7 +1,7 @@
 import { Box, Divider, Flex } from '@chakra-ui/react'
 import { useRouter } from 'next/router'
 import { APP_GRID_COLUMN, APP_GRID_TEMPLATE_COLUMN } from '~/constants/layouts'
-import { ProfileDescription, ProfileTabs } from '~/features/profile/components'
+import { ProfileDescription } from '~/features/profile/components'
 import { type NextPageWithLayout } from '~/lib/types'
 import { AppGrid } from '../AppGrid'
 import { AdminLayout } from './AdminLayout'
@@ -34,9 +34,6 @@ const _ProfileLayout: NextPageWithLayout['getLayout'] = (page) => {
         bg="white"
         px={{ base: '1rem', lg: 0 }}
       >
-        <Box gridColumn={APP_GRID_COLUMN}>
-          <ProfileTabs username={username} />
-        </Box>
         <Divider gridColumn={{ base: '1/5', md: '1/12' }} h="1px" />
         <Box gridColumn={APP_GRID_COLUMN} minH="100%">
           {page}
