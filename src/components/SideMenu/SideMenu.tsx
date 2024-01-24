@@ -9,6 +9,10 @@ import { ProfileMenu } from './ProfileMenu'
 import router from 'next/router'
 import Suspense from '../Suspense'
 import { CHAT } from '~/lib/routes'
+import {
+  CHAT_HISTORY_GROUP_SORT_ORDER,
+  type ChatHistoryGroup,
+} from '~/server/modules/watson/watson.types'
 
 /** TODO: Allow for chat histories here. Also create a new chat instance every time a user newly visits a page */
 export const SideMenu = () => {
@@ -45,13 +49,19 @@ const ConversationSuspenseWrapper = () => {
 
   return (
     <>
-      {Object.entries(pastConversations).map(([bucket, conversations]) => (
-        <PastConversationSection
-          key={bucket}
-          bucket={bucket}
-          conversationDetails={conversations}
-        />
-      ))}
+      {Object.entries(pastConversations)
+        .sort(
+          ([bucketA], [bucketB]) =>
+            CHAT_HISTORY_GROUP_SORT_ORDER[bucketA as ChatHistoryGroup] -
+            CHAT_HISTORY_GROUP_SORT_ORDER[bucketB as ChatHistoryGroup],
+        )
+        .map(([bucket, conversations]) => (
+          <PastConversationSection
+            key={bucket}
+            bucket={bucket}
+            conversationDetails={conversations}
+          />
+        ))}
     </>
   )
 }
