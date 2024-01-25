@@ -7,9 +7,12 @@ export const SuggestionsSection = ({
   suggestions: string[]
   onClickSuggestion: (message: string) => void
 }) => {
+  // this is the default value in the database
+  if (suggestions.length === 0) return <></>
+
   return (
     <VStack align="start" w="full">
-      <Text textStyle="caption-1">I can help you out with:</Text>
+      <Text textStyle="caption-3">I can help you out with:</Text>
       <SimpleGrid columns={2} gap={2} w="full">
         {suggestions.map((suggestion) => (
           <Box
@@ -28,7 +31,7 @@ export const SuggestionsSection = ({
             }}
             onClick={() => onClickSuggestion(suggestion)}
           >
-            <Text textStyle="caption-2" textColor="brand.secondary.400">
+            <Text textStyle="caption-3" textColor="brand.secondary.400">
               {suggestion}
             </Text>
           </Box>

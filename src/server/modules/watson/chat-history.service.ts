@@ -1,4 +1,4 @@
-import { ChatMessageUser, type PrismaClient } from '@prisma/client'
+import { ChatMessageUser, Prisma, type PrismaClient } from '@prisma/client'
 import pgvector from 'pgvector'
 import { z } from 'zod'
 
@@ -20,28 +20,31 @@ export class ChatMessageVectorService {
     embedding,
     rawMessage,
     conversationId,
+    suggestions = [],
     userType,
     prisma = this.prisma,
   }: {
     embedding?: number[]
     rawMessage: string
     userType: ChatMessageUser
+    suggestions?: string[]
     conversationId: number
     prisma?: PrismaClient
   }) {
     if (!!embedding) {
       await prisma.$queryRaw`INSERT INTO 
-    "ChatMessage" ("messageEmbedding", "rawMessage", "type", "conversationId") 
+    "ChatMessage" ("messageEmbedding", "rawMessage", "type", "conversationId", "suggestions") 
     VALUES 
       (
         ${pgvector.toSql(embedding)}::vector,
         ${rawMessage}, 
         cast(${userType} as "ChatMessageUser"), 
-        ${conversationId}
+        ${conversationId},
+        ARRAY[${suggestions.length > 0 ? Prisma.join(suggestions, ',') : ''}]
       );`
     } else {
       await prisma.chatMessage.create({
-        data: { conversationId, type: userType, rawMessage },
+        data: { conversationId, type: userType, rawMessage, suggestions },
       })
     }
   }
