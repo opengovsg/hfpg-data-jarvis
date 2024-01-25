@@ -1,4 +1,5 @@
 import { VStack, SimpleGrid, Box, Text } from '@chakra-ui/react'
+import { useIsTabletView } from '~/hooks/isTabletView'
 
 const suggestions = [
   {
@@ -18,11 +19,15 @@ export const EmptyChatDisplay = ({
 }: {
   onClickSuggestion: (msg: string) => void
 }) => {
+  const isTabletView = useIsTabletView()
+
   return (
     <VStack align="start" w="full" h="full">
       <VStack align="center" justify="center" w="full" flex={1}>
-        <Text textStyle="h5">Hello, I&apos;m Watson ️🕵️‍♂️</Text>
-        <Text align="center">
+        <Text textStyle={isTabletView ? 'h6' : 'h5'}>
+          Hello, I&apos;m Watson ️🕵️‍♂️
+        </Text>
+        <Text align="center" textStyle="body-2">
           Ask me about resale flats or start with one of my suggestions.
         </Text>
       </VStack>
@@ -35,7 +40,7 @@ export const EmptyChatDisplay = ({
             key={header}
             borderColor="interaction.main-subtle.default"
             bgColor="white"
-            p={4}
+            p={isTabletView ? 3 : 4}
             _hover={{
               bgColor: 'interaction.muted.main.hover',
               cursor: 'pointer',
@@ -45,10 +50,18 @@ export const EmptyChatDisplay = ({
             }}
             onClick={() => onClickSuggestion(`${header} ${content}`)}
           >
-            <Text textStyle="subhead-2" textColor="base.content.medium">
+            <Text
+              textStyle={isTabletView ? 'caption-1' : 'subhead-2'}
+              textColor="base.content.medium"
+            >
               {header}
             </Text>
-            <Text textColor="base.content.medium">{content}</Text>
+            <Text
+              textColor="base.content.medium"
+              textStyle={isTabletView ? 'caption-2' : undefined}
+            >
+              {content}
+            </Text>
           </Box>
         ))}
       </SimpleGrid>
