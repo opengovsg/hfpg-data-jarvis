@@ -1,6 +1,6 @@
 import '@tensorflow/tfjs'
 import { load } from '@tensorflow-models/universal-sentence-encoder'
-import { OpenAIClient } from './open-api.service'
+import { OpenAIClient } from './open-ai'
 
 // TODO: Use this next time, right now `model.load()` takes about ~5 seconds, adding lots of latency to our rseponse
 export async function generateEmbedding(sentence: string) {

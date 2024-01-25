@@ -70,21 +70,34 @@ export class ChatMessageVectorService {
   async findNearestEmbeddings({
     embedding,
     prisma = this.prisma,
-    limit = 10,
+    limit = 5,
     conversationId,
   }: {
     embedding: number[]
     conversationId: number
     prisma?: PrismaClient
     limit?: number
-  }) {
-    const similarMessages =
+  }): Promise<{ role: 'user' | 'assistant'; content: string }[]> {
+    const similarAgentMessages =
       await prisma.$queryRaw`SELECT id, "rawMessage", "type"
     FROM "ChatMessage" 
-    WHERE "ChatMessage"."conversationId" = ${conversationId}
-    ORDER BY "messageEmbedding" <-> ${pgvector.toSql(embedding)}::vector
+    WHERE "ChatMessage"."conversationId" = ${conversationId} AND "type" = 'AGENT'
+    ORDER BY "messageEmbedding" <-> ${pgvector.toSql(embedding)}::vector 
     LIMIT ${limit};`
 
-    return chatMessageEmbeddingRes.parse(similarMessages)
+    const similarUserMessages =
+      await prisma.$queryRaw`SELECT id, "rawMessage", "type"
+    FROM "ChatMessage" 
+    WHERE "ChatMessage"."conversationId" = ${conversationId} AND "type" = 'USER'
+    ORDER BY "messageEmbedding" <-> ${pgvector.toSql(embedding)}::vector 
+    LIMIT ${limit};`
+
+    const agentRes = chatMessageEmbeddingRes.parse(similarAgentMessages)
+    const userRes = chatMessageEmbeddingRes.parse(similarUserMessages)
+
+    return [...agentRes, ...userRes].map((msg) => ({
+      role: msg.type === 'AGENT' ? 'assistant' : 'user',
+      content: msg.rawMessage,
+    }))
   }
 }

@@ -5,7 +5,7 @@ import { getIronSession } from 'iron-session'
 import { sessionOptions } from '~/server/modules/auth/session'
 import { type SessionData } from '~/lib/types/session'
 import { type NextApiRequest, type NextApiResponse } from 'next'
-import { OpenAIClient } from '~/server/modules/watson/open-api.service'
+import { OpenAIClient } from '~/server/modules/watson/open-ai'
 import { prisma } from '~/server/prisma'
 import { ChatMessageVectorService } from '~/server/modules/watson/chat-history.service'
 import { PreviousSqlVectorService } from '~/server/modules/watson/sql-vector.service'
@@ -84,6 +84,7 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
     const sqlQuery = await generateSqlQueryFromAgent({
       question,
       questionEmbedding,
+      conversationId,
       tableInfo,
     })
 
@@ -183,13 +184,16 @@ function assertQuestionLengthConstraints(question: string) {
 async function generateSqlQueryFromAgent({
   question,
   questionEmbedding,
+  conversationId,
   tableInfo,
 }: {
   question: string
+  conversationId: number
   questionEmbedding: number[]
   tableInfo: string
 }) {
   const sqlVectorService = new PreviousSqlVectorService(prisma)
+  const chatHistoryVectorService = new ChatMessageVectorService(prisma)
 
   const nearestSqlEmbeddings = await sqlVectorService.findNearestEmbeddings({
     embedding: questionEmbedding,
@@ -203,14 +207,22 @@ async function generateSqlQueryFromAgent({
 Never query for all columns from a table. You must query only the columns that are needed to answer the question.
 Pay attention to use only the column names you can see in the tables below. Be careful to not query for columns that do not exist. Also, pay attention to which column is in which table.
 
+ALL STRING SEARCHES MUST BE CASE INSENSITIVE. FOR ANY STRINGS IN WHERE CONDITIONS, UPPER CASE THEM AUTOMATICALLY
+
 ------------
 SCHEMA: ${tableInfo}
 ------------
 SIMILAR SQL STATEMENTS: ${similarSqlStatementPrompt}
 ------------
 
-Return only the SQL query and nothing else.
+RETURN ONLY THE SQL QUERY ANY NOTHING ELSE:
 `
+
+  const chatHistoryParams =
+    await chatHistoryVectorService.findNearestEmbeddings({
+      embedding: questionEmbedding,
+      conversationId,
+    })
 
   const response = await OpenAIClient.chat.completions.create({
     model: 'gpt-3.5-turbo',
@@ -219,8 +231,7 @@ Return only the SQL query and nothing else.
         role: 'system',
         content: preamble,
       },
-      // TODO: Chat history seems to cause model to hallucinate, to add this at a later date
-      // ...chatHistoryParams,
+      ...chatHistoryParams,
       {
         role: 'user',
         content: question,
