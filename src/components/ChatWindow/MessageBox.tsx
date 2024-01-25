@@ -200,7 +200,12 @@ export const MessageBox = ({
                               size="xs"
                               value={localBadResponseReason}
                               onChange={(e) => {
-                                setBadResponseReason(e.currentTarget.value)
+                                {
+                                  /* // TODO: Make this a controlled component with error handling for max string len */
+                                }
+                                if (e.currentTarget.value.length <= 300) {
+                                  setBadResponseReason(e.currentTarget.value)
+                                }
                               }}
                             />
                             <Button
