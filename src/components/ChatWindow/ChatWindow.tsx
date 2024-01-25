@@ -34,6 +34,7 @@ import {
   updateConversationIsGeneratingResponseAtom,
   useGetCurrentConversation,
 } from './chat-window.atoms'
+import { WatsonHeader } from './WatsonHeader'
 
 const ChatWindow = ({
   conversationId,
@@ -135,14 +136,16 @@ const ChatWindow = ({
       style={{ width: '100%', height: '100%', overflowY: 'hidden' }}
     >
       <Grid
-        gridTemplateRows={`1fr min-content`}
+        gridTemplateRows={`min-content 1fr min-content`}
         h="100%"
         w="100%"
-        px={8}
         bgColor="base.canvas.brand-subtle"
       >
+        <WatsonHeader />
+
         <VStack
           align="start"
+          px={8}
           ref={chatWindowRef}
           spacing={6}
           w="100%"
@@ -185,7 +188,7 @@ const ChatWindow = ({
           )}
         </VStack>
 
-        <VStack mb={4}>
+        <VStack mb={4} px={8}>
           <FormControl
             isInvalid={!!askQuestionForm.formState.errors.question?.message}
           >

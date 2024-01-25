@@ -122,7 +122,10 @@ const ConversationTitle = ({
     trpc.watson.updateConversationTitle.useMutation()
 
   const readOnlyProps = {
-    _hover: { bgColor: 'whiteAlpha.200', cursor: 'pointer' },
+    _hover: {
+      bgColor: routerConvoId === convoId ? 'whiteAlpha.300' : 'whiteAlpha.200',
+      cursor: 'pointer',
+    },
     _active: { bgColor: 'whiteAlpha.100' },
     onClick: async () => {
       await router.push(`${CHAT}/${convoId}`)
@@ -177,7 +180,7 @@ const ConversationTitle = ({
       borderRadius={4}
       px={SIDE_MENU_ITEM_PX}
       py={2}
-      bgColor={routerConvoId === convoId ? 'whiteAlpha.200' : undefined}
+      bgColor={routerConvoId === convoId ? 'whiteAlpha.300' : undefined}
       {...(!isEditMode && readOnlyProps)}
       {...(isEditMode && { bgColor: 'whiteAlpha.400' })}
     >
@@ -217,7 +220,8 @@ const ConversationTitle = ({
           </Text>
 
           <IconButton
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation()
               setIsEditMode(true)
               setTitleBeforeEdit(conversationTitle)
             }}
