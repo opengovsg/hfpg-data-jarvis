@@ -45,7 +45,7 @@ export const Navbar = () => {
 
       <Drawer isOpen={isOpen} placement="left" onClose={onClose}>
         <DrawerOverlay />
-        <DrawerContent>
+        <DrawerContent width="260px" maxW="260px">
           <SideMenu />
         </DrawerContent>
       </Drawer>

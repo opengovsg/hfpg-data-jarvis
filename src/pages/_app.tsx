@@ -28,7 +28,7 @@ const MyApp = ((props: AppPropsWithAuthAndLayout) => {
         <ThemeProvider theme={theme}>
           <FeatureProvider>
             <ErrorBoundary FallbackComponent={DefaultFallback}>
-              <Suspense fallback={<Skeleton width="100vw" height="100vh" />}>
+              <Suspense fallback={<Skeleton width="100vw" height="$100vh" />}>
                 <Stack spacing={0} minH="$100vh">
                   <VersionWrapper />
                   <ChildWithLayout {...props} />

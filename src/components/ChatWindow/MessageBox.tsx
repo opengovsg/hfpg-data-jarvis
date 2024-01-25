@@ -1,11 +1,15 @@
 import { HStack, Text, Box, Avatar, Spinner } from '@chakra-ui/react'
+import { type ReactNode } from 'react'
 import { BiSolidBinoculars } from 'react-icons/bi'
 import { useMe } from '~/features/me/api'
+import { useIsTabletView } from '~/hooks/isTabletView'
 
 const WatsonIcon = () => {
+  const isTabletView = useIsTabletView()
+
   return (
     <Avatar
-      boxSize="52px"
+      boxSize={isTabletView ? '40px' : '52px'}
       bg="white"
       border="1px"
       color="interaction.sub-subtle.default"
@@ -22,58 +26,95 @@ export type MessageBoxProps = {
   id: string
 }
 
+export const MessageBoxLayout = ({
+  avatar,
+  message,
+}: {
+  avatar: ReactNode
+  message: ReactNode
+}) => {
+  const isTabletView = useIsTabletView()
+
+  return (
+    <HStack align="end" spacing={isTabletView ? 3 : 5}>
+      {avatar}
+      {message}
+    </HStack>
+  )
+}
+
 export const MessageBox = ({ message, type }: MessageBoxProps) => {
   const {
     me: { name },
   } = useMe()
 
+  const isTabletView = useIsTabletView()
+
   if (type === 'AGENT') {
     return (
-      <HStack align="end" spacing={5}>
-        <WatsonIcon />
-        <Box
+      <MessageBoxLayout
+        avatar={<WatsonIcon />}
+        message={
+          <Box
+            border="1px"
+            borderColor="interaction.main-subtle.default"
+            bgColor="white"
+            p={4}
+            borderRadius="8px"
+          >
+            <Text
+              whiteSpace="pre-line"
+              fontSize={isTabletView ? '14px' : undefined}
+            >
+              {message}
+            </Text>
+          </Box>
+        }
+      />
+    )
+  }
+
+  if (type === 'USER') {
+    return (
+      <MessageBoxLayout
+        avatar={
+          <Avatar name={name ?? ''} boxSize={isTabletView ? '40px' : '52px'} />
+        }
+        message={
+          <Box
+            border="1px"
+            borderColor="interaction.main-subtle.default"
+            p={4}
+            borderRadius="8px"
+            bgColor="interaction.main-subtle.default"
+          >
+            <Text
+              whiteSpace="pre-line"
+              fontSize={isTabletView ? '14px' : undefined}
+            >
+              {message}
+            </Text>
+          </Box>
+        }
+      />
+    )
+  }
+
+  return (
+    <MessageBoxLayout
+      avatar={<WatsonIcon />}
+      message={
+        <HStack
           border="1px"
           borderColor="interaction.main-subtle.default"
           bgColor="white"
           p={4}
           borderRadius="8px"
         >
-          <Text whiteSpace="pre-line">{message}</Text>
-        </Box>
-      </HStack>
-    )
-  }
-
-  if (type === 'USER') {
-    return (
-      <HStack align="end" spacing={5}>
-        <Avatar name={name ?? ''} boxSize="52px" />
-        <Box
-          border="1px"
-          borderColor="interaction.main-subtle.default"
-          p={4}
-          borderRadius="8px"
-          bgColor="interaction.main-subtle.default"
-        >
-          <Text whiteSpace="pre-line">{message}</Text>
-        </Box>
-      </HStack>
-    )
-  }
-
-  return (
-    <HStack align="end" spacing={5}>
-      <WatsonIcon />
-      <HStack
-        border="1px"
-        borderColor="interaction.main-subtle.default"
-        bgColor="white"
-        p={4}
-        borderRadius="8px"
-      >
-        <Spinner />
-        <Text>{message}</Text>
-      </HStack>
-    </HStack>
+          <Spinner />
+          <Text fontSize={isTabletView ? '14px' : undefined}>{message}</Text>
+        </HStack>
+      }
+    />
   )
 }

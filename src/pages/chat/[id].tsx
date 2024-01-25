@@ -26,7 +26,7 @@ const Chat: NextPageWithLayout = () => {
       <Grid
         gridTemplateColumns={isTabletView ? undefined : `260px 1fr`}
         gridTemplateRows={isTabletView ? 'min-content 1fr' : undefined}
-        h="100vh"
+        h="$100vh"
         overflowY="hidden"
       >
         {isTabletView ? <Navbar /> : <SideMenu />}

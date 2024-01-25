@@ -70,7 +70,7 @@ const SetupDecorator: Decorator = (story) => {
   )
   return (
     <ErrorBoundary FallbackComponent={DefaultFallback}>
-      <Suspense fallback={<Skeleton width="100vw" height="100vh" />}>
+      <Suspense fallback={<Skeleton width="100vw" height="$100vh" />}>
         <trpc.Provider client={trpcClient} queryClient={queryClient}>
           <QueryClientProvider client={queryClient}>
             {story()}
