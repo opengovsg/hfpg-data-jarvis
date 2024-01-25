@@ -1,4 +1,4 @@
-import { ChatMessageUser, Prisma, type PrismaClient } from '@prisma/client'
+import { ChatMessageUser, type PrismaClient } from '@prisma/client'
 import pgvector from 'pgvector'
 import { z } from 'zod'
 
@@ -32,16 +32,22 @@ export class ChatMessageVectorService {
     prisma?: PrismaClient
   }) {
     if (!!embedding) {
-      await prisma.$queryRaw`INSERT INTO 
-    "ChatMessage" ("messageEmbedding", "rawMessage", "type", "conversationId", "suggestions") 
+      const [res]: { id: number }[] = await prisma.$queryRaw`INSERT INTO 
+    "ChatMessage" ("messageEmbedding", "rawMessage", "type", "conversationId") 
     VALUES 
       (
         ${pgvector.toSql(embedding)}::vector,
         ${rawMessage}, 
         cast(${userType} as "ChatMessageUser"), 
-        ${conversationId},
-        ARRAY[${suggestions.length > 0 ? Prisma.join(suggestions, ',') : ''}]
-      );`
+        ${conversationId}
+      ) 
+      RETURNING "id";`
+
+      // this 2-op seems weird at first glance, but it is needed so we dont have to wrestle with prisma QueryRaw syntax which does not deal well with empty string arrays despite using Prisma.join()
+      await prisma.chatMessage.update({
+        where: { id: res!.id },
+        data: { suggestions },
+      })
     } else {
       await prisma.chatMessage.create({
         data: { conversationId, type: userType, rawMessage, suggestions },
