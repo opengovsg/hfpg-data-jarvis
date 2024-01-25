@@ -12,7 +12,7 @@ export const SuggestionsSection = ({
 
   return (
     <VStack align="start" w="full">
-      <Text textStyle="caption-3">I can help you out with:</Text>
+      <Text>Here are my suggestions:</Text>
       <SimpleGrid columns={2} gap={2} w="full">
         {suggestions.map((suggestion) => (
           <Box
@@ -31,7 +31,7 @@ export const SuggestionsSection = ({
             }}
             onClick={() => onClickSuggestion(suggestion)}
           >
-            <Text textStyle="caption-3" textColor="brand.secondary.400">
+            <Text textStyle="caption-2" textColor="brand.secondary.400">
               {suggestion}
             </Text>
           </Box>
