@@ -167,6 +167,8 @@ const ChatWindow = ({
 
           {chatMessages.map((chatMsg) => (
             <MessageBox
+              isGoodResponse={chatMsg.isGoodResponse}
+              badResponseReason={chatMsg.badResponseReason}
               id={chatMsg.id}
               key={chatMsg.id}
               type={chatMsg.type}

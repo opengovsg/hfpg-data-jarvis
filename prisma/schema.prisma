@@ -69,7 +69,10 @@ model ChatMessage {
 
   conversationId Int
   conversation   Conversation @relation(fields: [conversationId], references: [id])
-  suggestions    String[] @default([])
+  suggestions    String[]     @default([])
+
+  isGoodResponse    Boolean?
+  badResponseReason String?
 
   @@index([createdAt])
 }
