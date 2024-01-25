@@ -72,6 +72,12 @@ const ChatWindowSuspenseWrapper = ({
   const initialData = !!chatMsges
     ? chatMsges.map((msg) => ({
         ...msg,
+        // all prev chat msges are completed
+        isCompleted: true,
+        isGoodResponse:
+          msg.isGoodResponse === null ? undefined : msg.isGoodResponse,
+        badResponseReason:
+          msg.badResponseReason === null ? undefined : msg.badResponseReason,
         message: msg.rawMessage,
         id: msg.id.toString(),
       }))
