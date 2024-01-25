@@ -75,6 +75,7 @@ const sgidServerSchema = z.discriminatedUnion('NEXT_PUBLIC_ENABLE_SGID', [
 const server = z
   .object({
     DATABASE_URL: z.string().url(),
+    WATSON_READONLY_DB_URL: z.string().url(),
     NODE_ENV: z.enum(['development', 'test', 'production']),
     OTP_EXPIRY: z.coerce.number().positive().optional().default(600),
     POSTMAN_API_KEY: z.string().optional(),
@@ -134,6 +135,7 @@ const processEnv = {
   // Server-side env vars
   NODE_ENV: process.env.NODE_ENV,
   DATABASE_URL: process.env.DATABASE_URL,
+  WATSON_READONLY_DB_URL: process.env.WATSON_READONLY_DB_URL,
   OTP_EXPIRY: process.env.OTP_EXPIRY,
   POSTMAN_API_KEY: process.env.POSTMAN_API_KEY,
   SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,

@@ -6,7 +6,7 @@ import { sessionOptions } from '~/server/modules/auth/session'
 import { type SessionData } from '~/lib/types/session'
 import { type NextApiRequest, type NextApiResponse } from 'next'
 import { OpenAIClient } from '~/server/modules/watson/open-ai'
-import { prisma } from '~/server/prisma'
+import { prisma, readonlyWatsonPrismaClient } from '~/server/prisma'
 import { ChatMessageVectorService } from '~/server/modules/watson/chat-history.service'
 import { PreviousSqlVectorService } from '~/server/modules/watson/sql-vector.service'
 import { generateEmbeddingFromOpenAi } from '~/server/modules/watson/vector.utils'
@@ -287,7 +287,7 @@ async function runQueryAndTranslateToNlp({
 }) {
   await assertValidAndInexpensiveQuery(sqlQuery, prisma)
 
-  const sqlRes = await prisma.$queryRawUnsafe(sqlQuery)
+  const sqlRes = await readonlyWatsonPrismaClient.$queryRawUnsafe(sqlQuery)
 
   const stringifiedRes = JSON.stringify(sqlRes, (_, v) =>
     typeof v === 'bigint' ? v.toString() : v,

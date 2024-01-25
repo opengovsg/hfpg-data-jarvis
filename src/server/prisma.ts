@@ -18,3 +18,7 @@ export const prisma: PrismaClient =
 if (env.NODE_ENV !== 'production') {
   prismaGlobal.prisma = prisma
 }
+
+export const readonlyWatsonPrismaClient: PrismaClient = new PrismaClient({
+  datasourceUrl: env.WATSON_READONLY_DB_URL,
+})
