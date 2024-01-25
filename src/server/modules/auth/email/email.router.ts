@@ -1,7 +1,6 @@
 import { TRPCError } from '@trpc/server'
 import { publicProcedure, router } from '~/server/trpc'
 import { sendMail } from '~/lib/mail'
-import { getBaseUrl } from '~/utils/getBaseUrl'
 import { createTokenHash, createVfnPrefix, createVfnToken } from '../auth.util'
 import { verifyToken } from '../auth.service'
 import { VerificationError } from '../auth.error'
@@ -26,8 +25,6 @@ export const emailSessionRouter = router({
       const otpPrefix = createVfnPrefix()
       const hashedToken = createTokenHash(token, email)
 
-      const url = new URL(getBaseUrl())
-
       // May have one of them fail,
       // so users may get an email but not have the token saved, but that should be fine.
       await Promise.all([
@@ -47,7 +44,7 @@ export const emailSessionRouter = router({
           },
         }),
         sendMail({
-          subject: `Sign in to ${url.host}`,
+          subject: `Sign in to Watson AI`,
           body: `Your OTP is ${otpPrefix}-<b>${token}</b>. It will expire on ${formatInTimeZone(
             expires,
             'Asia/Singapore',
