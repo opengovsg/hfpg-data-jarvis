@@ -202,7 +202,9 @@ async function generateSqlQueryFromAgent({
   const similarSqlStatementPrompt =
     getSimilarSqlStatementsPrompt(nearestSqlEmbeddings)
 
-  const preamble = `You are an AI Chatbot specialised in PostgresQL. Based on the provided SQL table schema below, write a PostgreSQL query that would answer the user's question.
+  const preamble = `
+  [NO PROSE]
+  You are an AI Chatbot specialised in PostgresQL. Based on the provided SQL table schema below, write a PostgreSQL query that would answer the user's question.
 
 Never query for all columns from a table. You must query only the columns that are needed to answer the question.
 Pay attention to use only the column names you can see in the tables below. Be careful to not query for columns that do not exist. Also, pay attention to which column is in which table.
@@ -215,7 +217,9 @@ SCHEMA: ${tableInfo}
 SIMILAR SQL STATEMENTS: ${similarSqlStatementPrompt}
 ------------
 
-RETURN ONLY THE SQL QUERY ANY NOTHING ELSE:
+Respond with only SQL code. Do not answer with any explanations -- just the code.
+------------
+SQL QUERY:
 `
 
   const chatHistoryParams =

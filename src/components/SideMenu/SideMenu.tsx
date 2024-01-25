@@ -19,7 +19,7 @@ export const SideMenu = () => {
   return (
     <VStack
       bgColor="base.content.strong"
-      h="100vh"
+      h="100%"
       overflowY="scroll"
       pt={2}
       px={SIDE_MENU_ITEM_PX}

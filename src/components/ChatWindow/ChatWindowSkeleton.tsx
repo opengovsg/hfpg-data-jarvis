@@ -11,10 +11,13 @@ import {
   SkeletonCircle,
 } from '@chakra-ui/react'
 import { BiSend } from 'react-icons/bi'
-import { WatsonHeader } from '~/components/ChatWindow/WatsonHeader'
+import { WatsonMenu } from '~/components/ChatWindow/WatsonHeader'
+import { useIsTabletView } from '~/hooks/isTabletView'
 
 /** TODO: Change ChatWindowSkeleton and ChatWindow into a `ChatWindowLayout` to keep styles in sync */
 export const ChatWindowSkeleton = () => {
+  const isTabletView = useIsTabletView()
+
   return (
     <Grid
       gridTemplateRows={`min-content 1fr min-content`}
@@ -23,7 +26,7 @@ export const ChatWindowSkeleton = () => {
       bgColor="base.canvas.brand-subtle"
       overflowY="hidden"
     >
-      <WatsonHeader />
+      {!isTabletView && <WatsonMenu />}
       <VStack spacing={6} mt={6} overflowY="scroll" px={8}>
         {[...Array(6)].map((key) => (
           <HStack key={key} w="100%" spacing={4} maxH="56px">

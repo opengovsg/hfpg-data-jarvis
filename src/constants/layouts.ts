@@ -4,7 +4,7 @@ export const APP_GRID_TEMPLATE_COLUMN = {
 }
 export const APP_GRID_COLUMN = { base: '1 / 5', md: '1 / 12', lg: '3 / 8' }
 
-export const ADMIN_NAVBAR_HEIGHT = '3.5rem'
+export const ADMIN_NAVBAR_HEIGHT = '4rem'
 
 export const ADMIN_DASHBAR_WIDTHS = {
   base: '2.75rem',

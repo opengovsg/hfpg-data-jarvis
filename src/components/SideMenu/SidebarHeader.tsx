@@ -1,18 +1,11 @@
 import { HStack, Icon, Text } from '@chakra-ui/react'
 import { SIDE_MENU_ITEM_PX } from './sidemenu.constants'
 import { BsPencilSquare } from 'react-icons/bs'
-import { useRouter } from 'next/router'
-import { useSetAtom } from 'jotai'
-import {
-  DEFAULT_FAKE_CHAT_ID_STATE,
-  FAKE_CHAT_ID,
-  conversationStoreAtom,
-} from '../ChatWindow/chat-window.atoms'
-import { CHAT } from '~/lib/routes'
+import { useOnClickNewChat } from './side-menu.hooks'
 
 export const SidebarHeader = () => {
-  const router = useRouter()
-  const setConversationStoreState = useSetAtom(conversationStoreAtom)
+  const onClickNewChat = useOnClickNewChat()
+
   return (
     <HStack
       // Hack to keep New Chat insync with WatsonHeader
@@ -25,11 +18,7 @@ export const SidebarHeader = () => {
       _active={{ bgColor: 'whiteAlpha.100' }}
       px={SIDE_MENU_ITEM_PX}
       onClick={async () => {
-        setConversationStoreState((prev) => ({
-          ...prev,
-          [FAKE_CHAT_ID]: DEFAULT_FAKE_CHAT_ID_STATE,
-        }))
-        void router.push(CHAT)
+        await onClickNewChat()
       }}
     >
       <Text textStyle="subhead-2">New Chat</Text>

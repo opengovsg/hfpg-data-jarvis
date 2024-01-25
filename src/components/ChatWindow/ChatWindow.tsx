@@ -34,7 +34,8 @@ import {
   updateConversationIsGeneratingResponseAtom,
   useGetCurrentConversation,
 } from './chat-window.atoms'
-import { WatsonHeader } from './WatsonHeader'
+import { WatsonMenu } from './WatsonHeader'
+import { useIsTabletView } from '~/hooks/isTabletView'
 
 const ChatWindow = ({
   conversationId,
@@ -128,6 +129,8 @@ const ChatWindow = ({
     }
   }, [askQuestionForm, conversationId])
 
+  const isTabletView = useIsTabletView()
+
   return (
     <form
       onSubmit={askQuestionForm.handleSubmit(async (data) => {
@@ -141,8 +144,9 @@ const ChatWindow = ({
         w="100%"
         bgColor="base.canvas.brand-subtle"
       >
-        <WatsonHeader />
-
+        {/* empty box so grid layout is preserved and we dont have to dynamically
+        set gridTemplateRows */}
+        {!isTabletView ? <WatsonMenu /> : <Box></Box>}
         <VStack
           align="start"
           px={8}
@@ -187,7 +191,6 @@ const ChatWindow = ({
             />
           )}
         </VStack>
-
         <VStack mb={4} px={8}>
           <FormControl
             isInvalid={!!askQuestionForm.formState.errors.question?.message}

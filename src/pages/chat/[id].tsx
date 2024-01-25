@@ -12,15 +12,24 @@ import { SideMenu } from '~/components/SideMenu/SideMenu'
 import { type NextPageWithLayout } from '~/lib/types'
 import { trpc } from '~/utils/trpc'
 import { ChatWindowSkeleton } from '../../components/ChatWindow/ChatWindowSkeleton'
+import { Navbar } from '~/components/SideMenu/Navbar'
+import { useIsTabletView } from '~/hooks/isTabletView'
 
 const Chat: NextPageWithLayout = () => {
   const conversationId =
     router.query.id === undefined ? FAKE_CHAT_ID : Number(router.query.id)
 
+  const isTabletView = useIsTabletView()
+
   return (
     <EnforceLoginStatePageWrapper>
-      <Grid gridTemplateColumns={`260px 1fr`} h="100vh" overflowY="hidden">
-        <SideMenu />
+      <Grid
+        gridTemplateColumns={isTabletView ? undefined : `260px 1fr`}
+        gridTemplateRows={isTabletView ? 'min-content 1fr' : undefined}
+        h="100vh"
+        overflowY="hidden"
+      >
+        {isTabletView ? <Navbar /> : <SideMenu />}
 
         <ChatWindowSuspenseWrapper
           conversationId={conversationId}
