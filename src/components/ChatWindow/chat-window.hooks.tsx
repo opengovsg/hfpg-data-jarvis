@@ -90,8 +90,6 @@ export const useCallWatson = () => {
         },
       })
 
-      await utils.watson.getPastConversations.invalidate()
-
       if (response.body === null) {
         return
       }
@@ -127,6 +125,7 @@ export const useCallWatson = () => {
         }
       }
 
+      await utils.watson.getPastConversations.invalidate()
       setIsInputDisabled({ conversationId, isDisabled: false })
     },
     [
