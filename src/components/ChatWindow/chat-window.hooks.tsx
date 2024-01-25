@@ -71,6 +71,7 @@ export const useCallWatson = () => {
           [conversationId]: prev[FAKE_CHAT_ID]!,
         }))
 
+        await router.push(`${CHAT}/${conversationId}`)
         // Take the fake conversation id and clone the state
       } else {
         conversationId = formConversationId
@@ -109,13 +110,6 @@ export const useCallWatson = () => {
 
         setIsGenerating({ conversationId, isGeneratingResponse: false })
 
-        if (formConversationId === FAKE_CHAT_ID) {
-          setIsGenerating({
-            conversationId: FAKE_CHAT_ID,
-            isGeneratingResponse: false,
-          })
-        }
-
         // Check if it is an error, then handle it if it is
         const parsedErrorDetails = parseErrorPayload(value)
 
@@ -124,26 +118,16 @@ export const useCallWatson = () => {
 
           updateChatMessages({
             conversationId,
+            suggestions: parsedErrorDetails.error.suggestions,
             chunk: parsedErrorDetails.error.message,
             isError: true,
           })
         } else {
-          if (formConversationId === FAKE_CHAT_ID) {
-            updateChatMessages({
-              conversationId: FAKE_CHAT_ID,
-              chunk: value,
-              isError: false,
-            })
-          }
           updateChatMessages({ conversationId, chunk: value, isError: false })
         }
       }
 
       setIsInputDisabled({ conversationId, isDisabled: false })
-
-      if (formConversationId === FAKE_CHAT_ID) {
-        await router.push(`${CHAT}/${conversationId}`)
-      }
     },
     [
       createConversation,

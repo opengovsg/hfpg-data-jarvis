@@ -10,10 +10,9 @@ import {
 } from '@chakra-ui/react'
 import ResizeTextarea from 'react-textarea-autosize'
 import _ from 'lodash'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { BiSend } from 'react-icons/bi'
 import { useZodForm } from '~/lib/form'
-import { trpc } from '~/utils/trpc'
 import { MessageBox, type MessageBoxProps } from './MessageBox'
 import {
   useCallWatson,
@@ -51,15 +50,11 @@ const ChatWindow = ({
   const conversation = useGetCurrentConversation(conversationId)
 
   const isInputDisabled = conversation.isInputDisabled
-  const [suggestions, setSuggestions] = useState<string[]>([])
-  const [isSuggestionLoading, setIsSuggestionLoading] = useState<boolean>(false)
 
   useSyncConversationStoreWithChatWindowState({
     conversationId,
     chatMessages: fetchedChatMessages,
   })
-
-  const utils = trpc.useContext()
 
   const askQuestionForm = useZodForm({
     schema: getWatsonRequestSchema,
@@ -77,38 +72,15 @@ const ChatWindow = ({
   const chatWindowRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    async function fetchSuggestions(question: string) {
-      setIsSuggestionLoading(true)
-      const suggestions = await utils.watson.getSuggestions.fetch({ question })
-      setIsSuggestionLoading(false)
-
-      setSuggestions(suggestions)
-    }
-
-    if (
-      conversation.messages[conversation.messages.length - 1]?.isErrorMessage
-    ) {
-      const lastUserQuestion =
-        conversation.messages[
-          conversation.messages.findLastIndex((m) => m.type === 'USER')!
-        ]!
-
-      void fetchSuggestions(lastUserQuestion.message)
-    }
-    // disabled due to infinite loop, we use this hack so that suggestions show up on when fake chat message > message window redirects happen
-    // TODO: Clean up state management after hackathon
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  useEffect(() => {
     if (!!chatWindowRef.current) {
       chatWindowRef.current.scrollTo(0, chatWindowRef.current.scrollHeight)
     }
-  }, [conversation, suggestions])
+  }, [conversation])
 
-  const shouldShowSuggestions =
-    !!conversation.messages[conversation.messages.length - 1]?.isErrorMessage &&
-    !isSuggestionLoading
+  const lastChatMessage =
+    conversation.messages[conversation.messages.length - 1]
+
+  const shouldShowSuggestions = !!lastChatMessage?.suggestions
 
   const { sendQuestion } = useCallWatson()
 
@@ -205,7 +177,7 @@ const ChatWindow = ({
 
           {shouldShowSuggestions && (
             <SuggestionsSection
-              suggestions={suggestions}
+              suggestions={lastChatMessage.suggestions ?? []}
               onClickSuggestion={(suggestion) =>
                 askQuestionForm.setValue('question', suggestion)
               }

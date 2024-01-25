@@ -1,7 +1,5 @@
 import { protectedProcedure, router } from '~/server/trpc'
-import { PreviousSqlVectorService } from './sql-vector.service'
 import { z } from 'zod'
-import { generateEmbeddingFromOpenAi } from './vector.utils'
 import { mapDateToChatHistoryGroup } from './watson.utils'
 import _ from 'lodash'
 import { prisma } from '~/server/prisma'
@@ -53,6 +51,7 @@ export const watsonRouter = router({
         select: {
           rawMessage: true,
           type: true,
+          suggestions: true,
           id: true,
           createdAt: true,
         },
@@ -60,23 +59,6 @@ export const watsonRouter = router({
 
       return chatMessages
     }),
-  // TODO: Extend this to be dataset agnostic in the future. It will ideally take an input of the datasets we support
-  getSuggestions: protectedProcedure
-    .input(z.object({ question: z.string() }))
-    .query(async ({ ctx: { prisma }, input: { question } }) => {
-      const service = new PreviousSqlVectorService(prisma)
-
-      // TODO: Make generate embedding hit some kind of redis cache of question <> embedding mapping so we dont get charged for double calls
-      const embedding = await generateEmbeddingFromOpenAi(question)
-
-      const nearestQuestions = await service.findNearestEmbeddings({
-        embedding,
-        limit: 4,
-      })
-
-      return nearestQuestions.map((qn) => qn.rawQuestion)
-    }),
-
   updateConversationTitle: protectedProcedure
     .input(z.object({ conversationId: z.number(), title: z.string() }))
     .mutation(async ({ ctx: { prisma }, input: { conversationId, title } }) => {

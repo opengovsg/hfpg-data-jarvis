@@ -31,6 +31,7 @@ import {
   MIN_QUESTION_LENGTH,
   MAX_QUESTION_LENGTH,
 } from '~/server/modules/watson/watson.constants'
+import { type WatsonErrorRes } from '~/server/modules/watson/watson.types'
 
 // this is important to avoid the 'API resolved without sending a response for /api/test_sse, this may result in stalled requests.' warning
 export const config = {
@@ -63,9 +64,12 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const loggerMetadata: Record<string, unknown> = {}
   const chatHistoryVectorService = new ChatMessageVectorService(prisma)
+  // dummy initialisation so we can put real initialisation at try catch
+  let questionEmbedding: number[] = []
+  let agentSuggestions: string[] = []
 
   try {
-    const questionEmbedding = await generateEmbeddingFromOpenAi(question)
+    questionEmbedding = await generateEmbeddingFromOpenAi(question)
 
     await chatHistoryVectorService.storeMessage({
       embedding: questionEmbedding,
@@ -100,7 +104,33 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
       metadata: loggerMetadata,
     })
 
-    res.json({ message: finalAgentResponse, type: 'error' })
+    // this means embedding has not been fetched by OpenAI, there is an error at that layer
+    if (questionEmbedding.length === 0) {
+      const errorPayload: WatsonErrorRes = {
+        message: finalAgentResponse,
+        type: 'error',
+      }
+
+      res.json(errorPayload)
+    } else {
+      // embedding initialised, we can suggest similar questions
+      const service = new PreviousSqlVectorService(prisma)
+
+      const nearestQuestions = await service.findNearestEmbeddings({
+        embedding: questionEmbedding,
+        limit: 4,
+      })
+
+      agentSuggestions = nearestQuestions.map((qn) => qn.rawQuestion)
+
+      const errorPayload: WatsonErrorRes = {
+        message: finalAgentResponse,
+        type: 'error',
+        suggestions: agentSuggestions,
+      }
+
+      res.json(errorPayload)
+    }
   }
 
   console.log(`NLP Response: ${finalAgentResponse}`)
@@ -113,6 +143,7 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
     rawMessage: finalAgentResponse,
     userType: 'AGENT',
     conversationId,
+    suggestions: agentSuggestions,
   })
 
   const latestChatMsgDate = await prisma.chatMessage.findFirstOrThrow({

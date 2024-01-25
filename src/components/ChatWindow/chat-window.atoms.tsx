@@ -47,11 +47,13 @@ export const updateChatMessagesAtom = atom(
       conversationId,
       chunk,
       isError,
+      suggestions,
       isUserUpdate,
     }: {
       conversationId: number
       chunk: string
       isError?: boolean
+      suggestions?: string[]
       isUserUpdate?: boolean
     },
   ) => {
@@ -100,6 +102,7 @@ export const updateChatMessagesAtom = atom(
               type: 'AGENT',
               message: chunk,
               isErrorMessage: isError,
+              suggestions,
               id: uuidv4(),
             },
           ],
@@ -120,6 +123,7 @@ export const updateChatMessagesAtom = atom(
             ...lastChatMessage,
             message: lastChatMessage.message + chunk,
             isErrorMessage: isError,
+            suggestions,
           },
         ],
       },

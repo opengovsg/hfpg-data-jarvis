@@ -48,8 +48,8 @@ model Conversation {
   title     String
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
-  
-  latestChatMessageAt DateTime @default(now()) 
+
+  latestChatMessageAt DateTime @default(now())
 
   userId String
   user   User   @relation(fields: [userId], references: [id])
@@ -69,6 +69,7 @@ model ChatMessage {
 
   conversationId Int
   conversation   Conversation @relation(fields: [conversationId], references: [id])
+  suggestions    String[] @default([])
 
   @@index([createdAt])
 }
@@ -95,5 +96,5 @@ model User {
   emailVerified DateTime?      @map("email_verified")
   image         String?
   bio           String?
-  conversations          Conversation[]
+  conversations Conversation[]
 }

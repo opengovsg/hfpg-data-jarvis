@@ -3,6 +3,7 @@ import { z } from 'zod'
 export const WatsonErrorResSchema = z.object({
   type: z.enum(['error']),
   message: z.string(),
+  suggestions: z.array(z.string()).optional(),
 })
 
 export type WatsonErrorRes = z.infer<typeof WatsonErrorResSchema>
