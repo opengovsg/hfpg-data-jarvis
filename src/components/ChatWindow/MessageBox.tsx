@@ -39,6 +39,7 @@ export type MessageBoxProps = {
   message: string
   type: 'AGENT' | 'USER' | 'LOADING-RESPONSE'
   isErrorMessage?: boolean
+  isCompleted?: boolean
   isGoodResponse?: boolean
   badResponseReason?: string
   suggestions?: string[]
@@ -67,6 +68,7 @@ export const MessageBox = ({
   type,
   id,
   isGoodResponse,
+  isCompleted,
   badResponseReason,
 }: MessageBoxProps) => {
   const {
@@ -130,7 +132,7 @@ export const MessageBox = ({
             <WatsonIcon />
             {/* Hack to center align avatar with message box due to good/bad
             response icons */}
-            <Box h="20px" />
+            {isCompleted && <Box h="20px" />}
           </VStack>
         }
         message={
@@ -150,75 +152,77 @@ export const MessageBox = ({
               </Text>
             </Box>
 
-            <HStack spacing={2} h="20px">
-              <Tooltip label="Good response">
-                <IconButton
-                  aria-label="useful"
-                  backgroundColor={localIsUseful ? 'gray.200' : undefined}
-                  onClick={() => handleOnClickThumbsUp()}
-                  icon={<BsHandThumbsUp size="14px" />}
-                  variant="link"
-                  minH={'14px'}
-                  p={1}
-                  color={localIsUseful ? 'gray.500' : 'gray.400'}
-                  minW="fit-content"
-                />
-              </Tooltip>
+            {isCompleted && (
+              <HStack spacing={2} h="20px">
+                <Tooltip label="Good response">
+                  <IconButton
+                    aria-label="useful"
+                    backgroundColor={localIsUseful ? 'gray.200' : undefined}
+                    onClick={() => handleOnClickThumbsUp()}
+                    icon={<BsHandThumbsUp size="14px" />}
+                    variant="link"
+                    minH={'14px'}
+                    p={1}
+                    color={localIsUseful ? 'gray.500' : 'gray.400'}
+                    minW="fit-content"
+                  />
+                </Tooltip>
 
-              <Popover>
-                {({ onClose }) => (
-                  <>
-                    <Tooltip label="Bad response">
-                      <Box display="inline-block">
-                        <PopoverTrigger>
-                          <IconButton
-                            aria-label="not-useful"
-                            backgroundColor={
-                              localIsUseful === false ? 'gray.200' : undefined
-                            }
-                            icon={<BsHandThumbsDown size="14px" />}
-                            variant="link"
-                            p={1}
-                            minH={'14px'}
-                            color={localIsUseful ? 'gray.500' : 'gray.400'}
-                            minW="fit-content"
-                          />
-                        </PopoverTrigger>
-                      </Box>
-                    </Tooltip>
+                <Popover>
+                  {({ onClose }) => (
+                    <>
+                      <Tooltip label="Bad response">
+                        <Box display="inline-block">
+                          <PopoverTrigger>
+                            <IconButton
+                              aria-label="not-useful"
+                              backgroundColor={
+                                localIsUseful === false ? 'gray.200' : undefined
+                              }
+                              icon={<BsHandThumbsDown size="14px" />}
+                              variant="link"
+                              p={1}
+                              minH={'14px'}
+                              color={localIsUseful ? 'gray.500' : 'gray.400'}
+                              minW="fit-content"
+                            />
+                          </PopoverTrigger>
+                        </Box>
+                      </Tooltip>
 
-                    <PopoverContent>
-                      <PopoverHeader>
-                        <Text textStyle="subhead-2">Bad Response Reason</Text>
-                      </PopoverHeader>
-                      <PopoverBody>
-                        <VStack align="start">
-                          <Textarea
-                            size="xs"
-                            value={localBadResponseReason}
-                            onChange={(e) => {
-                              setBadResponseReason(e.currentTarget.value)
-                            }}
-                          />
-                          <Button
-                            size="xs"
-                            colorScheme="slate"
-                            onClick={async () => {
-                              await handleOnClickThumbsDown(
-                                localBadResponseReason,
-                              )
-                              onClose()
-                            }}
-                          >
-                            Submit
-                          </Button>
-                        </VStack>
-                      </PopoverBody>
-                    </PopoverContent>
-                  </>
-                )}
-              </Popover>
-            </HStack>
+                      <PopoverContent>
+                        <PopoverHeader>
+                          <Text textStyle="subhead-2">Bad Response Reason</Text>
+                        </PopoverHeader>
+                        <PopoverBody>
+                          <VStack align="start">
+                            <Textarea
+                              size="xs"
+                              value={localBadResponseReason}
+                              onChange={(e) => {
+                                setBadResponseReason(e.currentTarget.value)
+                              }}
+                            />
+                            <Button
+                              size="xs"
+                              colorScheme="slate"
+                              onClick={async () => {
+                                await handleOnClickThumbsDown(
+                                  localBadResponseReason,
+                                )
+                                onClose()
+                              }}
+                            >
+                              Submit
+                            </Button>
+                          </VStack>
+                        </PopoverBody>
+                      </PopoverContent>
+                    </>
+                  )}
+                </Popover>
+              </HStack>
+            )}
           </VStack>
         }
       />

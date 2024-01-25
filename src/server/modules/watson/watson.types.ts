@@ -1,12 +1,13 @@
 import { z } from 'zod'
 
-export const WatsonErrorResSchema = z.object({
-  type: z.enum(['error']),
-  message: z.string(),
+export const CompletedStreamingSchema = z.object({
+  type: z.enum(['error', 'success']),
+  messageId: z.number(),
+  message: z.string().optional(),
   suggestions: z.array(z.string()).optional(),
 })
 
-export type WatsonErrorRes = z.infer<typeof WatsonErrorResSchema>
+export type CompletedStreamingRes = z.infer<typeof CompletedStreamingSchema>
 
 export const ChatHistoryGroups = [
   'Today',

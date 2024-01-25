@@ -171,6 +171,7 @@ const ChatWindow = ({
               badResponseReason={chatMsg.badResponseReason}
               id={chatMsg.id}
               key={chatMsg.id}
+              isCompleted={chatMsg.isCompleted}
               type={chatMsg.type}
               message={chatMsg.message}
             />

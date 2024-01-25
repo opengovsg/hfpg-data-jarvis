@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from 'react'
 import {
-  type WatsonErrorRes,
-  WatsonErrorResSchema,
+  type CompletedStreamingRes,
+  CompletedStreamingSchema,
 } from '~/server/modules/watson/watson.types'
 import { trpc } from '~/utils/trpc'
 import { type GetWatsonRequest } from '~/utils/watson'
@@ -18,22 +18,24 @@ import { type MessageBoxProps } from './MessageBox'
 import { CHAT } from '~/lib/routes'
 
 /** Checks if data-stream return is a valid json object of `WatsonErrorRes` then handle it accordingly */
-const parseErrorPayload = (
+const parseCompletedRes = (
   payload: string,
-): { type: 'not-error' } | { type: 'error'; error: WatsonErrorRes } => {
+):
+  | { type: 'not-completed' }
+  | { type: 'completed'; data: CompletedStreamingRes } => {
   try {
     const rawPayload = JSON.parse(payload)
 
-    const errorRes = WatsonErrorResSchema.safeParse(rawPayload)
+    const completedRes = CompletedStreamingSchema.safeParse(rawPayload)
 
-    if (!errorRes.success) {
-      return { type: 'not-error' }
+    if (!completedRes.success) {
+      return { type: 'not-completed' }
     }
 
-    return { type: 'error', error: errorRes.data }
+    return { type: 'completed', data: completedRes.data }
   } catch (e) {
     // assuming all errors no op
-    return { type: 'not-error' }
+    return { type: 'not-completed' }
   }
 }
 
@@ -109,17 +111,29 @@ export const useCallWatson = () => {
         setIsGenerating({ conversationId, isGeneratingResponse: false })
 
         // Check if it is an error, then handle it if it is
-        const parsedErrorDetails = parseErrorPayload(value)
+        const parsedCompletedRes = parseCompletedRes(value)
 
-        if (parsedErrorDetails.type === 'error') {
+        if (parsedCompletedRes.type === 'completed') {
           setIsGenerating({ conversationId, isGeneratingResponse: false })
 
-          updateChatMessages({
-            conversationId,
-            suggestions: parsedErrorDetails.error.suggestions,
-            chunk: parsedErrorDetails.error.message,
-            isError: true,
-          })
+          if (parsedCompletedRes.data.type === 'error') {
+            updateChatMessages({
+              conversationId,
+              suggestions: parsedCompletedRes.data.suggestions,
+              chunk: parsedCompletedRes.data.message ?? '',
+              completedMsgId: parsedCompletedRes.data.messageId.toString(),
+              isCompleted: true,
+              isError: true,
+            })
+          } else {
+            updateChatMessages({
+              conversationId,
+              completedMsgId: parsedCompletedRes.data.messageId.toString(),
+              isCompleted: true,
+              chunk: '',
+            })
+          }
+          break
         } else {
           updateChatMessages({ conversationId, chunk: value, isError: false })
         }

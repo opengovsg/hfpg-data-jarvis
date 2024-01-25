@@ -8,6 +8,7 @@ export type ConversationStore = Record<
     messages: MessageBoxProps[]
     isInputDisabled: boolean
     isGeneratingResponse: boolean
+    isCompleted: boolean
   }
 >
 
@@ -18,6 +19,7 @@ export const DEFAULT_FAKE_CHAT_ID_STATE = {
   messages: [],
   isInputDisabled: false,
   isGeneratingResponse: false,
+  isCompleted: false,
 }
 
 /** TODO: This state management is cursed af, redo after hackathon if this becomes a real thing */
@@ -48,11 +50,15 @@ export const updateChatMessagesAtom = atom(
       chunk,
       isError,
       suggestions,
+      isCompleted,
+      completedMsgId,
       isUserUpdate,
     }: {
       conversationId: number
       chunk: string
       isError?: boolean
+      completedMsgId?: string
+      isCompleted?: boolean
       suggestions?: string[]
       isUserUpdate?: boolean
     },
@@ -102,8 +108,9 @@ export const updateChatMessagesAtom = atom(
               type: 'AGENT',
               message: chunk,
               isErrorMessage: isError,
+              isCompleted,
               suggestions,
-              id: uuidv4(),
+              id: isCompleted ? completedMsgId! : lastChatMessage.id,
             },
           ],
         },
@@ -123,7 +130,9 @@ export const updateChatMessagesAtom = atom(
             ...lastChatMessage,
             message: lastChatMessage.message + chunk,
             isErrorMessage: isError,
+            isCompleted,
             suggestions,
+            id: isCompleted ? completedMsgId! : lastChatMessage.id,
           },
         ],
       },

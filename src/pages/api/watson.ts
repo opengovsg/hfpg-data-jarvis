@@ -31,7 +31,7 @@ import {
   MIN_QUESTION_LENGTH,
   MAX_QUESTION_LENGTH,
 } from '~/server/modules/watson/watson.constants'
-import { type WatsonErrorRes } from '~/server/modules/watson/watson.types'
+import { type CompletedStreamingRes } from '~/server/modules/watson/watson.types'
 
 // this is important to avoid the 'API resolved without sending a response for /api/test_sse, this may result in stalled requests.' warning
 export const config = {
@@ -67,6 +67,7 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
   // dummy initialisation so we can put real initialisation at try catch
   let questionEmbedding: number[] = []
   let agentSuggestions: string[] = []
+  let isError = false
 
   try {
     questionEmbedding = await generateEmbeddingFromOpenAi(question)
@@ -105,15 +106,10 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
       metadata: loggerMetadata,
     })
 
-    // this means embedding has not been fetched by OpenAI, there is an error at that layer
-    if (questionEmbedding.length === 0) {
-      const errorPayload: WatsonErrorRes = {
-        message: finalAgentResponse,
-        type: 'error',
-      }
+    isError = true
 
-      res.json(errorPayload)
-    } else {
+    // this means embedding has not been fetched by OpenAI, there is an error at that layer
+    if (questionEmbedding.length !== 0) {
       // embedding initialised, we can suggest similar questions
       const service = new PreviousSqlVectorService(prisma)
 
@@ -123,14 +119,6 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
       })
 
       agentSuggestions = nearestQuestions.map((qn) => qn.rawQuestion)
-
-      const errorPayload: WatsonErrorRes = {
-        message: finalAgentResponse,
-        type: 'error',
-        suggestions: agentSuggestions,
-      }
-
-      res.json(errorPayload)
     }
   }
 
@@ -147,20 +135,39 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
     suggestions: agentSuggestions,
   })
 
-  const latestChatMsgDate = await prisma.chatMessage.findFirstOrThrow({
-    where: { conversation: { id: conversationId } },
-    orderBy: { createdAt: 'desc' },
-    select: {
-      createdAt: true,
-    },
-  })
+  // take latest created msg as the agent response, ignore race conditions
+  const { createdAt: latestChatMsgDate, id: chatMsgId } =
+    await prisma.chatMessage.findFirstOrThrow({
+      where: { conversation: { id: conversationId } },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        createdAt: true,
+        id: true,
+      },
+    })
 
   await prisma.conversation.update({
     where: { id: conversationId },
     data: {
-      latestChatMessageAt: latestChatMsgDate?.createdAt,
+      latestChatMessageAt: latestChatMsgDate,
     },
   })
+
+  let completedStreamingRes: CompletedStreamingRes = {
+    messageId: chatMsgId,
+    type: 'success',
+  }
+
+  if (isError) {
+    completedStreamingRes = {
+      messageId: chatMsgId,
+      type: 'error',
+      message: finalAgentResponse,
+      suggestions: agentSuggestions,
+    }
+  }
+
+  res.json(completedStreamingRes)
 
   res.end()
 }
