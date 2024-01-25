@@ -22,7 +22,7 @@ export const EmptyChatDisplay = ({
     <VStack align="start" w="full" h="full">
       <VStack align="center" justify="center" w="full" flex={1}>
         <Text textStyle="h5">Hello, I&apos;m Watson ️🕵️‍♂️</Text>
-        <Text>
+        <Text align="center">
           Ask me about resale flats or start with one of my suggestions.
         </Text>
       </VStack>
