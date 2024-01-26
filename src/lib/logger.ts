@@ -18,6 +18,7 @@ const levels: { [level: string]: number } = {
 type LoggerOptions = {
   path: string
   clientIp?: string
+  userId?: string
 }
 
 export class PinoLogger {
@@ -34,7 +35,7 @@ export class PinoLogger {
         target: 'pino-pretty',
         options: {
           colorize: true,
-          hideObject: true,
+          hideObject: false,
         },
       })
     } else {
@@ -64,10 +65,11 @@ export class PinoLogger {
   The logger we use inherits the bindings and transport from the parent singleton instance
   Use child loggers to avoid creating a new instance for every trpc call
   */
-  public static logger = ({ path, clientIp }: LoggerOptions) => {
+  public static logger = ({ path, clientIp, userId }: LoggerOptions) => {
     return PinoLogger.getInstance().child({
       path,
       clientIp,
+      userId,
       id: nanoid(),
     })
   }

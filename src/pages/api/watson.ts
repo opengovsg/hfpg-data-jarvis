@@ -1,6 +1,3 @@
-// Streaming Functions must be defined in an
-// app directory, even if the rest of your app
-// is in the pages directory.
 import { getIronSession } from 'iron-session'
 import { sessionOptions } from '~/server/modules/auth/session'
 import { type SessionData } from '~/lib/types/session'
@@ -32,13 +29,8 @@ import {
   MAX_QUESTION_LENGTH,
 } from '~/server/modules/watson/watson.constants'
 import { type CompletedStreamingRes } from '~/server/modules/watson/watson.types'
-
-// this is important to avoid the 'API resolved without sending a response for /api/test_sse, this may result in stalled requests.' warning
-export const config = {
-  api: {
-    externalResolver: true,
-  },
-}
+import { createBaseLogger } from '~/lib/logger'
+import { type Logger } from 'pino'
 
 export async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST')
@@ -49,6 +41,11 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (isAuthedRes.type === 'failure') {
     return res.status(401).json({ message: 'unauthenticated' })
   }
+
+  const logger = createBaseLogger({
+    path: '/watson',
+    userId: isAuthedRes.user.id,
+  })
 
   setStreamHeaders(res)
 
@@ -62,7 +59,10 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
   let finalAgentResponse = UNABLE_TO_FIND_ANSWER_MESSAGE
   const { question, conversationId } = requestBody.data
 
-  const loggerMetadata: Record<string, unknown> = {}
+  const loggerMetadata: Record<string, unknown> = {
+    question,
+  }
+
   const chatHistoryVectorService = new ChatMessageVectorService(prisma)
   // dummy initialisation so we can put real initialisation at try catch
   let questionEmbedding: number[] = []
@@ -91,19 +91,21 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     loggerMetadata.sqlQuery = sqlQuery
 
-    console.log('Generated query: ', sqlQuery)
+    logger.info(loggerMetadata, 'Generated Query')
 
     finalAgentResponse = await runQueryAndTranslateToNlp({
       question,
       sqlQuery,
       tableInfo,
       res,
+      logger,
     })
   } catch (e) {
     // If any error thrown, get an agent response
     finalAgentResponse = generateResponseFromErrors({
       error: e,
-      metadata: loggerMetadata,
+      question,
+      logger,
     })
 
     isError = true
@@ -122,7 +124,9 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
     }
   }
 
-  console.log(`NLP Response: ${finalAgentResponse}`)
+  loggerMetadata.finalAgentResponse = finalAgentResponse
+
+  logger.info(loggerMetadata, 'NLP response')
 
   const agentResEmbedding =
     await generateEmbeddingFromOpenAi(finalAgentResponse)
@@ -279,11 +283,13 @@ async function runQueryAndTranslateToNlp({
   sqlQuery,
   tableInfo,
   res,
+  logger,
 }: {
   question: string
   sqlQuery: string
   tableInfo: string
   res: NextApiResponse
+  logger?: Logger<string>
 }) {
   await assertValidAndInexpensiveQuery(sqlQuery, prisma)
 
@@ -293,7 +299,7 @@ async function runQueryAndTranslateToNlp({
     typeof v === 'bigint' ? v.toString() : v,
   )
 
-  console.log('Response from SQL', stringifiedRes)
+  logger?.info({ stringifiedRes }, 'Response from SQL')
 
   const nlpPrompt = `Based on the table schema below, question, SQL query, and SQL response, write a natural language response:
   ------------

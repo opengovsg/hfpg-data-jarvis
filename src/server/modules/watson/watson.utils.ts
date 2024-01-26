@@ -14,6 +14,7 @@ import { VALID_TABLE_NAMES } from '../prompt/sql/types'
 import { type ChatHistoryGroup } from './watson.types'
 import * as dateFns from 'date-fns'
 import { utcToZonedTime } from 'date-fns-tz'
+import { type Logger } from 'pino'
 
 export const doesPromptExceedTokenLimit = (prompt: string) => {
   // appromximation that 4 char === 1 token
@@ -27,13 +28,15 @@ export const doesPromptExceedTokenLimit = (prompt: string) => {
  *  */
 export function generateResponseFromErrors({
   error,
-  metadata,
+  question,
+  logger,
 }: {
   error: unknown
-  metadata: object
+  question: string
+  logger?: Logger<string>
 }): string {
   // TODO: Find a way to have a pino logger for this
-  console.warn({ metadata, error }, 'Error occurred')
+  logger?.warn({ error, question }, 'Error occurred')
 
   if (error instanceof TokenExceededError || error instanceof ExpensiveError) {
     return `I’m sorry, I wasn’t able to process that. How about rephrasing or narrowing down your question?`
