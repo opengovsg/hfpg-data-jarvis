@@ -453,16 +453,20 @@ export const TableDataViewer = ({
       </VStack>
 
       {isSqlViewable && (
-        <Box w="full" bgColor="base.content.strong" p={4} borderRadius={4}>
-          <pre>
-            <Code bgColor="base.content.strong" color="gray.100">
-              {format(generatedQuery, {
-                tabWidth: 4,
-                language: 'postgresql',
-              })}
-            </Code>
-          </pre>
-        </Box>
+        <pre style={{ width: '100%' }}>
+          <Code
+            bgColor="base.content.strong"
+            color="gray.100"
+            p={4}
+            width="100%"
+            borderRadius={4}
+          >
+            {format(generatedQuery, {
+              tabWidth: 4,
+              language: 'postgresql',
+            })}
+          </Code>
+        </pre>
       )}
     </VStack>
   )
