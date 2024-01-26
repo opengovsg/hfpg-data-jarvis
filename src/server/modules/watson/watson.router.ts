@@ -2,9 +2,11 @@ import { protectedProcedure, router } from '~/server/trpc'
 import { z } from 'zod'
 import { mapDateToChatHistoryGroup } from './watson.utils'
 import _ from 'lodash'
-import { prisma } from '~/server/prisma'
+import { prisma, readonlyWatsonPrismaClient } from '~/server/prisma'
 import { FAKE_CHAT_ID } from '~/components/ChatWindow/chat-window.atoms'
 import { TRPCError } from '@trpc/server'
+
+const tableDataQuerySchema = z.array(z.record(z.unknown()))
 
 // TODO: Add RBAC to this whole layer in the future
 export const watsonRouter = router({
@@ -61,6 +63,7 @@ export const watsonRouter = router({
             rawMessage: true,
             type: true,
             suggestions: true,
+            sqlQuery: true,
             badResponseReason: true,
             isGoodResponse: true,
             id: true,
@@ -128,4 +131,49 @@ export const watsonRouter = router({
         })
       },
     ),
+  getTable: protectedProcedure
+    .input(
+      z.object({
+        messageId: z.number(),
+        limit: z.number(),
+        offset: z.number(),
+      }),
+    )
+    .query(async ({ ctx: { user }, input: { messageId, limit, offset } }) => {
+      const { sqlQuery } = await prisma.chatMessage.findFirstOrThrow({
+        where: { id: messageId, conversation: { userId: user.id } },
+        select: {
+          sqlQuery: true,
+        },
+      })
+
+      if (sqlQuery === null)
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'sql query not defined for this agent message',
+        })
+
+      // TODO: check for security vulerabilities
+      // TODO: check how to improve perf for this, this is super hacky MVP query that might not use indexes etc
+      const res = await readonlyWatsonPrismaClient.$queryRawUnsafe(
+        `SELECT * FROM (${sqlQuery.replaceAll(';', '')}) a LIMIT ${
+          // we add a + 1 here so that we know whether we can navigate to next page
+          limit + 1
+        } OFFSET ${offset * limit}`,
+      )
+
+      const tableRecords = tableDataQuerySchema.safeParse(res)
+
+      if (!tableRecords.success) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'sql query response is of unexpected format',
+        })
+      }
+
+      return {
+        data: tableRecords.data.slice(0, 10),
+        hasNext: tableRecords.data.length > 10,
+      }
+    }),
 })

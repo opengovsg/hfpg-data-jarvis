@@ -5,6 +5,7 @@ export const CompletedStreamingSchema = z.object({
   messageId: z.number(),
   message: z.string().optional(),
   suggestions: z.array(z.string()).optional(),
+  generatedQuery: z.string().optional(),
 })
 
 export type CompletedStreamingRes = z.infer<typeof CompletedStreamingSchema>

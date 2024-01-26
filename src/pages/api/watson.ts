@@ -68,6 +68,7 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
   let questionEmbedding: number[] = []
   let agentSuggestions: string[] = []
   let isError = false
+  let successfullyRanQuery: string | undefined
 
   try {
     questionEmbedding = await generateEmbeddingFromOpenAi(question)
@@ -100,6 +101,8 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
       res,
       logger,
     })
+
+    successfullyRanQuery = sqlQuery
   } catch (e) {
     // If any error thrown, get an agent response
     finalAgentResponse = generateResponseFromErrors({
@@ -136,6 +139,7 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
     rawMessage: finalAgentResponse,
     userType: 'AGENT',
     conversationId,
+    sqlQuery: successfullyRanQuery,
     suggestions: agentSuggestions,
   })
 
@@ -160,6 +164,7 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
   let completedStreamingRes: CompletedStreamingRes = {
     messageId: chatMsgId,
     type: 'success',
+    generatedQuery: successfullyRanQuery,
   }
 
   if (isError) {

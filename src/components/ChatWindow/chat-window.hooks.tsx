@@ -130,6 +130,7 @@ export const useCallWatson = () => {
               conversationId,
               completedMsgId: parsedCompletedRes.data.messageId.toString(),
               isCompleted: true,
+              generatedQuery: parsedCompletedRes.data.generatedQuery,
               chunk: '',
             })
           }

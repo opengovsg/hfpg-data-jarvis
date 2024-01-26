@@ -74,6 +74,8 @@ model ChatMessage {
   isGoodResponse    Boolean?
   badResponseReason String?
 
+  sqlQuery String?
+
   @@index([createdAt])
 }
 

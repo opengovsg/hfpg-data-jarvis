@@ -9,6 +9,7 @@ export type ConversationStore = Record<
     isInputDisabled: boolean
     isGeneratingResponse: boolean
     isCompleted: boolean
+    generatedQuery?: string
   }
 >
 
@@ -51,6 +52,7 @@ export const updateChatMessagesAtom = atom(
       isError,
       suggestions,
       isCompleted,
+      generatedQuery,
       completedMsgId,
       isUserUpdate,
     }: {
@@ -58,12 +60,15 @@ export const updateChatMessagesAtom = atom(
       chunk: string
       isError?: boolean
       completedMsgId?: string
+      generatedQuery?: string
       isCompleted?: boolean
       suggestions?: string[]
       isUserUpdate?: boolean
     },
   ) => {
     const conversation = get(conversationStoreAtom)[conversationId]
+
+    console.log('>> my query generated', generatedQuery)
 
     // this should never happen
     if (conversation === undefined) {
@@ -109,6 +114,7 @@ export const updateChatMessagesAtom = atom(
               message: chunk,
               isErrorMessage: isError,
               isCompleted,
+              generatedQuery,
               suggestions,
               id: isCompleted ? completedMsgId! : lastChatMessage.id,
             },
@@ -131,6 +137,7 @@ export const updateChatMessagesAtom = atom(
             message: lastChatMessage.message + chunk,
             isErrorMessage: isError,
             isCompleted,
+            generatedQuery,
             suggestions,
             id: isCompleted ? completedMsgId! : lastChatMessage.id,
           },
@@ -190,3 +197,12 @@ export const updateConversationIsGeneratingResponseAtom = atom(
     }))
   },
 )
+
+export const tableDataAtom = atom<null | {
+  generatedQuery: string
+  data: Record<string, unknown>[]
+  limit: number
+  offset: number
+  messageId: string
+  hasNext: boolean
+}>(null)

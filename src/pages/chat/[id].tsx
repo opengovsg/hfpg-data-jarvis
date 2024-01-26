@@ -1,5 +1,14 @@
-import { Grid } from '@chakra-ui/react'
-import { useAtomValue } from 'jotai'
+import {
+  Grid,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
+} from '@chakra-ui/react'
+import { useAtom, useAtomValue } from 'jotai'
 import _ from 'lodash'
 import router from 'next/router'
 import { EnforceLoginStatePageWrapper } from '~/components/AuthWrappers'
@@ -7,6 +16,7 @@ import ChatWindow from '~/components/ChatWindow/ChatWindow'
 import {
   FAKE_CHAT_ID,
   conversationStoreAtom,
+  tableDataAtom,
 } from '~/components/ChatWindow/chat-window.atoms'
 import { SideMenu } from '~/components/SideMenu/SideMenu'
 import { type NextPageWithLayout } from '~/lib/types'
@@ -14,6 +24,7 @@ import { trpc } from '~/utils/trpc'
 import { ChatWindowSkeleton } from '../../components/ChatWindow/ChatWindowSkeleton'
 import { Navbar } from '~/components/SideMenu/Navbar'
 import { useIsTabletView } from '~/hooks/isTabletView'
+import { TableDataViewer } from '~/components/ChatWindow/MessageBox'
 
 const Chat: NextPageWithLayout = () => {
   const conversationId =
@@ -72,6 +83,7 @@ const ChatWindowSuspenseWrapper = ({
   const initialData = !!chatMsges
     ? chatMsges.map((msg) => ({
         ...msg,
+        generatedQuery: msg.sqlQuery === null ? undefined : msg.sqlQuery,
         // all prev chat msges are completed
         isCompleted: true,
         isGoodResponse:
@@ -88,7 +100,36 @@ const ChatWindowSuspenseWrapper = ({
   }
 
   return (
-    <ChatWindow conversationId={conversationId} chatMessages={initialData} />
+    <>
+      <ChatWindow conversationId={conversationId} chatMessages={initialData} />
+      <TableModal />
+    </>
+  )
+}
+
+const TableModal = () => {
+  const [tableData, setTableData] = useAtom(tableDataAtom)
+  const isTabletView = useIsTabletView()
+
+  if (tableData === null) return <></>
+
+  return (
+    <Modal
+      isOpen={!!tableData}
+      onClose={() => setTableData(null)}
+      size={isTabletView ? 'full' : '6xl'}
+    >
+      <ModalOverlay />
+      <ModalContent>
+        <ModalHeader>Data Preview</ModalHeader>
+        <ModalCloseButton />
+        <ModalBody>
+          <TableDataViewer {...tableData} />
+        </ModalBody>
+
+        <ModalFooter></ModalFooter>
+      </ModalContent>
+    </Modal>
   )
 }
 
