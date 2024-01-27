@@ -76,6 +76,7 @@ export const TableInfoLayout = ({
             p={4}
             width="100%"
             borderRadius={4}
+            style={{ overflowX: 'scroll' }}
           >
             {format(generatedQuery, {
               tabWidth: 4,
