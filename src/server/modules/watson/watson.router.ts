@@ -141,8 +141,6 @@ export const watsonRouter = router({
       }),
     )
     .query(async ({ ctx: { user }, input: { messageId, limit, offset } }) => {
-      await new Promise((res) => setTimeout(res, 2000))
-
       const { sqlQuery } = await prisma.chatMessage.findFirstOrThrow({
         where: { id: messageId, conversation: { userId: user.id } },
         select: {
