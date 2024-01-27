@@ -7,6 +7,7 @@ import {
   Td,
   Thead,
   Th,
+  Tbody,
   TableContainer,
   ButtonGroup,
   Skeleton,
@@ -163,13 +164,16 @@ const TableView = ({
               ))}
             </Tr>
           </Thead>
-          {dataWithId.map((r) => (
-            <Tr key={r.uniqueId}>
-              {columnNames.map((col) => (
-                <Td key={`${r.uniqueId} ${col}`}>{String(r.rowData[col])}</Td>
-              ))}
-            </Tr>
-          ))}
+
+          <Tbody>
+            {dataWithId.map((r) => (
+              <Tr key={r.uniqueId}>
+                {columnNames.map((col) => (
+                  <Td key={`${r.uniqueId} ${col}`}>{String(r.rowData[col])}</Td>
+                ))}
+              </Tr>
+            ))}
+          </Tbody>
         </Table>
       </TableContainer>
 
