@@ -23,6 +23,7 @@ export class ChatMessageVectorService {
     suggestions = [],
     sqlQuery,
     userType,
+    question,
     prisma = this.prisma,
   }: {
     embedding?: number[]
@@ -32,6 +33,7 @@ export class ChatMessageVectorService {
     suggestions?: string[]
     conversationId: number
     prisma?: PrismaClient
+    question?: string
   }) {
     if (!!embedding) {
       const [res]: { id: number }[] = await prisma.$queryRaw`INSERT INTO 
@@ -48,7 +50,7 @@ export class ChatMessageVectorService {
       // this 2-op seems weird at first glance, but it is needed so we dont have to wrestle with prisma QueryRaw syntax which does not deal well with empty string arrays despite using Prisma.join()
       await prisma.chatMessage.update({
         where: { id: res!.id },
-        data: { suggestions, sqlQuery },
+        data: { suggestions, sqlQuery, question },
       })
     } else {
       await prisma.chatMessage.create({

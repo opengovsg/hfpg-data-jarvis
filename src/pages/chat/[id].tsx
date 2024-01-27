@@ -16,7 +16,7 @@ import ChatWindow from '~/components/ChatWindow/ChatWindow'
 import {
   FAKE_CHAT_ID,
   conversationStoreAtom,
-  tableDataAtom,
+  tableInfoAtom,
 } from '~/components/ChatWindow/chat-window.atoms'
 import { SideMenu } from '~/components/SideMenu/SideMenu'
 import { type NextPageWithLayout } from '~/lib/types'
@@ -24,7 +24,7 @@ import { trpc } from '~/utils/trpc'
 import { ChatWindowSkeleton } from '../../components/ChatWindow/ChatWindowSkeleton'
 import { Navbar } from '~/components/SideMenu/Navbar'
 import { useIsTabletView } from '~/hooks/isTabletView'
-import { TableDataViewer } from '~/components/ChatWindow/MessageBox'
+import { TableInfoLayout } from '~/components/ChatWindow/TableDataViewer'
 
 const Chat: NextPageWithLayout = () => {
   const conversationId =
@@ -84,6 +84,7 @@ const ChatWindowSuspenseWrapper = ({
     ? chatMsges.map((msg) => ({
         ...msg,
         generatedQuery: msg.sqlQuery === null ? undefined : msg.sqlQuery,
+        question: msg.question === null ? undefined : msg.question,
         // all prev chat msges are completed
         isCompleted: true,
         isGoodResponse:
@@ -108,7 +109,7 @@ const ChatWindowSuspenseWrapper = ({
 }
 
 const TableModal = () => {
-  const [tableData, setTableData] = useAtom(tableDataAtom)
+  const [tableData, setTableData] = useAtom(tableInfoAtom)
   const isTabletView = useIsTabletView()
 
   if (tableData === null) return <></>
@@ -122,9 +123,10 @@ const TableModal = () => {
       <ModalOverlay />
       <ModalContent>
         <ModalHeader>Data Preview</ModalHeader>
+
         <ModalCloseButton />
         <ModalBody>
-          <TableDataViewer {...tableData} />
+          <TableInfoLayout {...tableData} />
         </ModalBody>
 
         <ModalFooter></ModalFooter>

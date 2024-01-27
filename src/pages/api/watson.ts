@@ -141,6 +141,7 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
     conversationId,
     sqlQuery: successfullyRanQuery,
     suggestions: agentSuggestions,
+    question,
   })
 
   // take latest created msg as the agent response, ignore race conditions
@@ -165,6 +166,7 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
     messageId: chatMsgId,
     type: 'success',
     generatedQuery: successfullyRanQuery,
+    question,
   }
 
   if (isError) {

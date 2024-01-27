@@ -121,6 +121,7 @@ export const useCallWatson = () => {
               conversationId,
               suggestions: parsedCompletedRes.data.suggestions,
               chunk: parsedCompletedRes.data.message ?? '',
+              question: parsedCompletedRes.data.question,
               completedMsgId: parsedCompletedRes.data.messageId.toString(),
               isCompleted: true,
               isError: true,
@@ -130,6 +131,7 @@ export const useCallWatson = () => {
               conversationId,
               completedMsgId: parsedCompletedRes.data.messageId.toString(),
               isCompleted: true,
+              question: parsedCompletedRes.data.question,
               generatedQuery: parsedCompletedRes.data.generatedQuery,
               chunk: '',
             })

@@ -1,7 +1,6 @@
 import {
   HStack,
   Text,
-  Code,
   Box,
   Avatar,
   Spinner,
@@ -13,31 +12,17 @@ import {
   PopoverContent,
   PopoverHeader,
   PopoverTrigger,
-  Table,
-  Tr,
-  Td,
-  Thead,
-  Th,
-  TableContainer,
   Flex,
-  ButtonGroup,
 } from '@chakra-ui/react'
-import { format } from 'sql-formatter'
 import { IconButton, Textarea, useToast } from '@opengovsg/design-system-react'
-import { useCallback, useMemo, useState, type ReactNode } from 'react'
-import {
-  BiChevronLeft,
-  BiChevronRight,
-  BiSolidBinoculars,
-  BiTerminal,
-} from 'react-icons/bi'
+import { useCallback, useState, type ReactNode } from 'react'
+import { BiSolidBinoculars } from 'react-icons/bi'
 import { BsHandThumbsDown, BsHandThumbsUp, BsTable } from 'react-icons/bs'
-import { v4 } from 'uuid'
 import { useMe } from '~/features/me/api'
 import { useIsTabletView } from '~/hooks/isTabletView'
 import { trpc } from '~/utils/trpc'
 import { useSetAtom } from 'jotai'
-import { tableDataAtom } from './chat-window.atoms'
+import { tableInfoAtom } from './chat-window.atoms'
 
 const WatsonIcon = () => {
   const isTabletView = useIsTabletView()
@@ -62,6 +47,7 @@ export type MessageBoxProps = {
   badResponseReason?: string
   suggestions?: string[]
   generatedQuery?: string
+  question?: string
   id: string
 }
 
@@ -94,6 +80,7 @@ export const MessageBox = ({
   message,
   type,
   id,
+  question,
   generatedQuery,
   isGoodResponse,
   isCompleted,
@@ -107,6 +94,7 @@ export const MessageBox = ({
   const [localBadResponseReason, setBadResponseReason] = useState(
     badResponseReason ?? '',
   )
+
   // do this so we can optimstically update
   const [localIsUseful, setLocalIsUseful] = useState(isGoodResponse)
 
@@ -116,9 +104,7 @@ export const MessageBox = ({
 
   const rateResponseMutation = trpc.watson.rateResponse.useMutation()
 
-  const utils = trpc.useContext()
-
-  const setTableData = useSetAtom(tableDataAtom)
+  const setTableInfo = useSetAtom(tableInfoAtom)
 
   const handleOnClickThumbsUp = useCallback(async () => {
     try {
@@ -191,19 +177,10 @@ export const MessageBox = ({
                     <IconButton
                       aria-label="useful"
                       onClick={async () => {
-                        const res = await utils.watson.getTable.fetch({
-                          messageId: Number(id),
-                          limit: 10,
-                          offset: 0,
-                        })
-
-                        setTableData({
-                          data: res.data,
-                          hasNext: res.hasNext,
+                        setTableInfo({
                           messageId: id,
                           generatedQuery,
-                          limit: 10,
-                          offset: 0,
+                          question: question ?? '',
                         })
                       }}
                       icon={<BsTable size="14px" />}
@@ -337,137 +314,5 @@ export const MessageBox = ({
         </HStack>
       }
     />
-  )
-}
-
-export const TableDataViewer = ({
-  data,
-  limit,
-  offset,
-  hasNext,
-  messageId,
-  generatedQuery,
-}: {
-  data: Record<string, unknown>[]
-  generatedQuery: string
-  limit: number
-  hasNext: boolean
-  messageId: string
-  offset: number
-}) => {
-  const columnNames = useMemo(() => {
-    return Object.keys(data[0]!)
-  }, [data])
-
-  const dataWithId = useMemo(
-    () => data.map((row) => ({ rowData: row, uniqueId: v4() })),
-    [data],
-  )
-  const setTableData = useSetAtom(tableDataAtom)
-
-  const utils = trpc.useContext()
-
-  const handleClickChevron = useCallback(
-    async ({ offset }: { offset: number }) => {
-      const res = await utils.watson.getTable.fetch({
-        messageId: Number(messageId),
-        limit: limit,
-        offset: offset,
-      })
-
-      setTableData({
-        data: res.data,
-        generatedQuery,
-        messageId,
-        limit: limit,
-        offset: offset,
-        hasNext: res.hasNext,
-      })
-    },
-    [generatedQuery, limit, messageId, setTableData, utils.watson.getTable],
-  )
-
-  const [isSqlViewable, setIsSqlViewable] = useState(false)
-  if (data.length === 0) {
-    return <Text>no data to preview</Text>
-  }
-
-  return (
-    <VStack w="full" align="start" spacing={2}>
-      <VStack w="full" align="center">
-        <TableContainer w="full">
-          <Table size="sm" variant="simple">
-            <Thead>
-              <Tr>
-                {columnNames.map((col) => (
-                  <Th key={col} textTransform="capitalize">
-                    {col.replaceAll('_', ' ')}
-                  </Th>
-                ))}
-              </Tr>
-            </Thead>
-            {dataWithId.map((r) => (
-              <Tr key={r.uniqueId}>
-                {columnNames.map((col) => (
-                  <Td key={`${r.uniqueId} ${col}`}>{String(r.rowData[col])}</Td>
-                ))}
-              </Tr>
-            ))}
-          </Table>
-        </TableContainer>
-
-        <HStack w="full" justify="space-between">
-          <ButtonGroup>
-            <IconButton
-              aria-label="left"
-              icon={<BiChevronLeft />}
-              size="xs"
-              variant="clear"
-              isDisabled={offset === 0}
-              onClick={async () =>
-                await handleClickChevron({ offset: offset - 1 })
-              }
-            />
-            <IconButton
-              aria-label="right"
-              onClick={async () =>
-                await handleClickChevron({ offset: offset + 1 })
-              }
-              icon={<BiChevronRight />}
-              size="xs"
-              variant="clear"
-              isDisabled={!hasNext}
-            />
-          </ButtonGroup>
-
-          <Button
-            p={0}
-            variant="clear"
-            onClick={() => setIsSqlViewable((prev) => !prev)}
-            size="xs"
-            leftIcon={<BiTerminal />}
-          >
-            <code>{isSqlViewable ? `Hide` : `View`} Code</code>
-          </Button>
-        </HStack>
-      </VStack>
-
-      {isSqlViewable && (
-        <pre style={{ width: '100%' }}>
-          <Code
-            bgColor="base.content.strong"
-            color="gray.100"
-            p={4}
-            width="100%"
-            borderRadius={4}
-          >
-            {format(generatedQuery, {
-              tabWidth: 4,
-              language: 'postgresql',
-            })}
-          </Code>
-        </pre>
-      )}
-    </VStack>
   )
 }

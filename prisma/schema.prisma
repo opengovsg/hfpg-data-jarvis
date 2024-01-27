@@ -74,7 +74,9 @@ model ChatMessage {
   isGoodResponse    Boolean?
   badResponseReason String?
 
+  // Agent message only attributes
   sqlQuery String?
+  question String?
 
   @@index([createdAt])
 }
