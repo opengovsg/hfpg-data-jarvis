@@ -53,7 +53,7 @@ export const ChartInfoLayout = ({
       <VStack w="full" align="center">
         <ErrorBoundary FallbackComponent={DefaultFallback}>
           <Suspense>
-            {chartInfo}
+            {/* Render the Chart here */}
           </Suspense>
         </ErrorBoundary>
       </VStack>

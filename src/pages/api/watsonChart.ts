@@ -62,53 +62,53 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
   
     // 1. create message based on thread id
     const threadId = 'thread_4UsV21OZK2uMa7cHAYqKfI7L'
-    // const threadMessages = await OpenAIClient.beta.threads.messages.create(
-    //   threadId,
-    //   { role: "user", content: "What is the average price of 4 room flats in bishan in 2023 for each months? Return it as a chart" }
-    // );
-    // console.log(threadMessages, 'thread messages')
+    const threadMessages = await OpenAIClient.beta.threads.messages.create(
+      threadId,
+      { role: "user", content: "What is the average price of 4 room flats in bishan in 2023 for each months? Return it as a chart" }
+    );
+    console.log(threadMessages, 'thread messages')
 
-    // // 2. create run
-    // const assistantId = 'asst_9dWpeAjuq58LhAoILrRPGoei'
-    // const createRun = await OpenAIClient.beta.threads.runs.create(
-    //   threadId,
-    //   { assistant_id: assistantId}
-    // );
-    // console.log(createRun, 'createRun');
+    // 2. create run
+    const assistantId = 'asst_9dWpeAjuq58LhAoILrRPGoei'
+    const createRun = await OpenAIClient.beta.threads.runs.create(
+      threadId,
+      { assistant_id: assistantId}
+    );
+    console.log(createRun, 'createRun');
 
-    // // 3. retrieve run
-    // async function pollRetrieveRunUntilCompleted(threadId: string, runId: string) {
-    //   let retrieveRun: {status: string, file_ids:string[]};
+    // 3. retrieve run
+    async function pollRetrieveRunUntilCompleted(threadId: string, runId: string) {
+      let retrieveRun: {status: string, file_ids:string[]};
     
-    //   // Define a function to retrieve the run
-    //   const retrieveRunFunction = async () => {
-    //     retrieveRun = await OpenAIClient.beta.threads.runs.retrieve(threadId, runId);
-    //     console.log(retrieveRun, 'retrieveRun');
-    //     return retrieveRun
-    //   };
-    //   retrieveRun = await retrieveRunFunction()
-    //   // Poll until retrieveRun.status is 'completed'
-    //   while (!retrieveRun || retrieveRun.status !== 'completed') {
-    //     await retrieveRunFunction(); // Call the function
+      // Define a function to retrieve the run
+      const retrieveRunFunction = async () => {
+        retrieveRun = await OpenAIClient.beta.threads.runs.retrieve(threadId, runId);
+        console.log(retrieveRun, 'retrieveRun');
+        return retrieveRun
+      };
+      retrieveRun = await retrieveRunFunction()
+      // Poll until retrieveRun.status is 'completed'
+      while (!retrieveRun || retrieveRun.status !== 'completed') {
+        await retrieveRunFunction(); // Call the function
     
-    //     // Wait for 1 second before the next attempt
-    //     await new Promise(resolve => setTimeout(resolve, 1000));
-    //   }
+        // Wait for 1 second before the next attempt
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
     
-    //   console.log('Run completed:', retrieveRun);
-    //   return
-    // }
+      console.log('Run completed:', retrieveRun);
+      return
+    }
     
-    // // Call the function with the appropriate threadId and runId
-    // await pollRetrieveRunUntilCompleted(threadId, createRun.id);
+    // 4. Call the function with the appropriate threadId and runId
+    await pollRetrieveRunUntilCompleted(threadId, createRun.id);
 
-    // List Messages
+    // 5. List Messages
     const threadMessagesAfterRun = await OpenAIClient.beta.threads.messages.list(
       threadId, {order: 'desc'}
     );
   
     console.log(threadMessagesAfterRun, 'threadMessagesAfterRun');
-    // Get latest message file id
+    // 6. Get latest message file id
     const latestMessageContent = threadMessagesAfterRun.data[0]?.content || []
     console.log(latestMessageContent, 'latestMessageContent')
 
@@ -118,7 +118,8 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
       console.log('no message content')
       return
     }
-    
+
+    // 7. Parse message for file id
     for (let i = 0; i < latestMessageContent.length; i ++){
       if(latestMessageContent[i]?.type === 'image_file' ) {
         console.log(latestMessageContent[i], 'image')
@@ -133,15 +134,20 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     console.log(latestMessageImageFileId, latestMessageText)
     
-    const fileId = 'file-k98F9AQvGOT17TEqTvSUHwUr'
-    const file = await OpenAIClient.files.content(fileId);
+    // 8. Pull buffer from file API
+    const file = await OpenAIClient.files.content(latestMessageImageFileId);
 
     console.log(file, 'file');
     console.log(file.body._readableState.buffer[0], 'file.buffer')
     const outputFilePath = 'chart.png';
-    // fs.writeFileSync(outputFilePath, file.body._readableState.buffer[0], 'binary')
+
     const b64 = Buffer.from(file.body._readableState.buffer[0]).toString('base64');
     const mimeType = 'image/png';
+
+    // 9. Return image b64 to front end for rendering
+    // Will need some help here - Not sure how to store the image and reflect it on the front end
+    // Was initially thinking of just sending it across as part of the response to be rendered in the chat modal as a first cut
+
   return { type: 'success', user: { id: threadId } , img: `<img src="data:${mimeType};base64,${b64}" />`}
 }
 
