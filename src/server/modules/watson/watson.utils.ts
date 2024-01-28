@@ -1,3 +1,4 @@
+import { OpenAIClient } from '~/server/modules/watson/open-ai'
 import { type PrismaClient } from '@prisma/client'
 import { type ChatCompletion } from 'openai/resources'
 import { z } from 'zod'
@@ -15,6 +16,10 @@ import { type ChatHistoryGroup } from './watson.types'
 import * as dateFns from 'date-fns'
 import { utcToZonedTime } from 'date-fns-tz'
 import { type Logger } from 'pino'
+import { create } from "lodash";
+import OpenAI from "openai";
+
+ const openai = new OpenAI({ apiKey: 'sk-insertakeyherebutdonotactuallyusetherealvalue',dangerouslyAllowBrowser: true})
 
 export const doesPromptExceedTokenLimit = (prompt: string) => {
   // appromximation that 4 char === 1 token

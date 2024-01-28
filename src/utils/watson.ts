@@ -12,6 +12,13 @@ export const getWatsonRequestSchema = z.object({
     .min(MIN_QUESTION_LENGTH, { message: 'Enter at least 10 characters' })
     .max(MAX_QUESTION_LENGTH, { message: 'Enter 1,000 characters or less' }),
   conversationId: z.number(),
+  chart: z.boolean().default(false)
 })
 
 export type GetWatsonRequest = z.infer<typeof getWatsonRequestSchema>
+// export type GetWatsonRequestChart = {
+//   question: string;
+//   conversationId:number;
+//   threadId: string;
+//   assistantId: string;
+// }

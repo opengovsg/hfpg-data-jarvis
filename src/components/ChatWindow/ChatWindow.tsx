@@ -84,7 +84,7 @@ const ChatWindow = ({
 
   const shouldShowSuggestions = !!lastChatMessage?.suggestions
 
-  const { sendQuestion } = useCallWatson()
+  const { sendQuestion, sendChartRequest } = useCallWatson()
 
   const handleSubmitData = async (
     data: z.infer<typeof getWatsonRequestSchema>,

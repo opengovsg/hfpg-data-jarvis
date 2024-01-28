@@ -54,7 +54,7 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (!requestBody.success) {
     return res.status(400).json(requestBody.error)
   }
-
+  
   /** Step 1: Get the initial SQL query */
   let finalAgentResponse = UNABLE_TO_FIND_ANSWER_MESSAGE
   const { question, conversationId } = requestBody.data
@@ -381,7 +381,7 @@ async function isAuthenticated(
   if (user === null) {
     return { type: 'failure' }
   }
-
+  
   return { type: 'success', user: { id: user.id } }
 }
 

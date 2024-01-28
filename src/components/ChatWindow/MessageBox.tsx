@@ -17,12 +17,17 @@ import {
 import { IconButton, Textarea, useToast } from '@opengovsg/design-system-react'
 import { useCallback, useState, type ReactNode } from 'react'
 import { BiSolidBinoculars } from 'react-icons/bi'
-import { BsHandThumbsDown, BsHandThumbsUp, BsTable } from 'react-icons/bs'
+import { BsHandThumbsDown, BsHandThumbsUp, BsTable , BsGraphUp} from 'react-icons/bs'
 import { useMe } from '~/features/me/api'
 import { useIsTabletView } from '~/hooks/isTabletView'
 import { trpc } from '~/utils/trpc'
 import { useSetAtom } from 'jotai'
-import { tableInfoAtom } from './chat-window.atoms'
+import { tableInfoAtom, chartInfoAtom } from './chat-window.atoms'
+import { getChart } from '~/server/modules/watson/watson.utils'
+import {
+  useCallWatson,
+  useSyncConversationStoreWithChatWindowState,
+} from './chat-window.hooks'
 
 const WatsonIcon = () => {
   const isTabletView = useIsTabletView()
@@ -47,6 +52,7 @@ export type MessageBoxProps = {
   badResponseReason?: string
   suggestions?: string[]
   generatedQuery?: string
+  chartUrl?: string
   question?: string
   id: string
 }
@@ -81,6 +87,7 @@ export const MessageBox = ({
   type,
   id,
   question,
+  chartUrl,
   generatedQuery,
   isGoodResponse,
   isCompleted,
@@ -103,8 +110,32 @@ export const MessageBox = ({
   const toast = useToast({ isClosable: true })
 
   const rateResponseMutation = trpc.watson.rateResponse.useMutation()
-
+  
   const setTableInfo = useSetAtom(tableInfoAtom)
+  const setChartInfo = useSetAtom(chartInfoAtom)
+  const { sendQuestion, sendChartRequest } = useCallWatson()
+  
+  const handleOnClickGetChart = useCallback(async () => {
+    try {
+      sendChartRequest({question: '', conversationId: 1})
+      setChartInfo({
+        messageId: id,
+        generatedQuery: 'draw a chart',
+        question: question ?? '',
+        chartUrl: '',
+      })
+    } catch (e) {
+      console.log(e)
+      toast({
+        status: 'error',
+        description:
+          'Something went wrong generating a chart. Please try again or contact us for help',
+      })
+    } finally {
+      
+    }
+  }, [id, rateResponseMutation, toast])
+
 
   const handleOnClickThumbsUp = useCallback(async () => {
     try {
@@ -172,7 +203,21 @@ export const MessageBox = ({
 
             {isCompleted && (
               <HStack spacing={2} h="20px">
-                {!!generatedQuery && (
+                
+                {!!chartUrl && (
+                  <>
+                  <Tooltip label="View Chart">
+                  <IconButton
+                    aria-label="useful"
+                    onClick={() => handleOnClickGetChart()}
+                    icon={<BsGraphUp size="14px" />}
+                    variant="link"
+                    minH={'14px'}
+                    p={1}
+                    color={localIsUseful ? 'gray.500' : 'gray.400'}
+                    minW="fit-content"
+                  />
+                </Tooltip>
                   <Tooltip label="View Data">
                     <IconButton
                       aria-label="useful"
@@ -191,6 +236,7 @@ export const MessageBox = ({
                       minW="fit-content"
                     />
                   </Tooltip>
+                  </>
                 )}
                 <Tooltip label="Good response">
                   <IconButton

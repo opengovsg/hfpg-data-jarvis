@@ -82,6 +82,7 @@ export const useCallWatson = () => {
       const payload: GetWatsonRequest = {
         conversationId,
         question,
+        chart: false
       }
 
       const response = await fetch(`/api/watson`, {
@@ -156,7 +157,96 @@ export const useCallWatson = () => {
     ],
   )
 
-  return { sendQuestion }
+  const sendChartRequest = useCallback(
+    async ({
+      // question,
+      conversationId: formConversationId,
+    }: {
+      // question: string
+      conversationId: number
+    }) => {
+      let conversationId = formConversationId
+      const question = "What is the average price of 4 room flats in bishan in 2023 for each months? Return it as a chart"
+      const payload = {
+        conversationId,
+        question,
+        chart: true
+      }
+
+      const response = await fetch(`/api/watsonChart`,{
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: {
+          'Content-Type': 'text/event-stream',
+        },
+      })
+
+      if (response.body === null) {
+        return
+      }
+
+      console.log(response.body)
+
+      const reader = response.body
+        .pipeThrough(new TextDecoderStream())
+        .getReader()
+
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) break
+
+        if (value === undefined || value.length === 0) {
+          continue
+        }
+
+        // setIsGenerating({ conversationId, isGeneratingResponse: false })
+
+        // // Check if it is an error, then handle it if it is
+        // const parsedCompletedRes = parseCompletedRes(value)
+
+        // if (parsedCompletedRes.type === 'completed') {
+        //   setIsGenerating({ conversationId, isGeneratingResponse: false })
+
+        //   if (parsedCompletedRes.data.type === 'error') {
+        //     updateChatMessages({
+        //       conversationId,
+        //       suggestions: parsedCompletedRes.data.suggestions,
+        //       chunk: parsedCompletedRes.data.message ?? '',
+        //       question: parsedCompletedRes.data.question,
+        //       completedMsgId: parsedCompletedRes.data.messageId.toString(),
+        //       isCompleted: true,
+        //       isError: true,
+        //     })
+        //   } else {
+        //     updateChatMessages({
+        //       conversationId,
+        //       completedMsgId: parsedCompletedRes.data.messageId.toString(),
+        //       isCompleted: true,
+        //       question: parsedCompletedRes.data.question,
+        //       generatedQuery: parsedCompletedRes.data.generatedQuery,
+        //       chunk: '',
+        //     })
+        //   }
+        //   break
+        // } else {
+        //   updateChatMessages({ conversationId, chunk: value, isError: false })
+        // }
+      }
+
+      // await utils.watson.getPastConversations.invalidate()
+      // setIsInputDisabled({ conversationId, isDisabled: false })
+    },
+    [
+      // createConversation,
+      // router,
+      // setConversationStore,
+      // setIsGenerating,
+      // setIsInputDisabled,
+      // updateChatMessages,
+      // utils.watson.getPastConversations,
+    ],
+  )
+  return { sendQuestion, sendChartRequest }
 }
 
 export const useSyncConversationStoreWithChatWindowState = ({
