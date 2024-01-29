@@ -5,11 +5,24 @@ import _ from 'lodash'
 import { prisma, readonlyWatsonPrismaClient } from '~/server/prisma'
 import { FAKE_CHAT_ID } from '~/components/ChatWindow/chat-window.atoms'
 import { TRPCError } from '@trpc/server'
+import { getTableColumnMetadata } from '../prompt/sql/sql.utils'
 
 const tableDataQuerySchema = z.array(z.record(z.unknown()))
 
 // TODO: Add RBAC to this whole layer in the future
 export const watsonRouter = router({
+  getTableInfo: protectedProcedure.query(async ({ ctx: { prisma } }) => {
+    const colMetadata = await getTableColumnMetadata(
+      'hdb_resale_transaction',
+      prisma,
+    )
+    const sampleData = await prisma.hdbResaleTransaction.findMany({ take: 5 })
+
+    return {
+      colMetadata,
+      sampleData,
+    }
+  }),
   getPastConversations: protectedProcedure.query(
     async ({ ctx: { prisma, user } }) => {
       const pastConversations = await prisma.conversation.findMany({

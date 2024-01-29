@@ -1,5 +1,30 @@
-import { VStack, SimpleGrid, Box, Text } from '@chakra-ui/react'
+import {
+  VStack,
+  SimpleGrid,
+  Box,
+  Text,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
+  useDisclosure,
+  Table,
+  Thead,
+  Tr,
+  Th,
+  Td,
+  Tbody,
+  TableContainer,
+} from '@chakra-ui/react'
+import { Button } from '@opengovsg/design-system-react'
+import NextLink from 'next/link'
+import { useMemo } from 'react'
+import { BiLinkExternal, BiTable } from 'react-icons/bi'
 import { useIsTabletView } from '~/hooks/isTabletView'
+import { trpc } from '~/utils/trpc'
 
 const suggestions = [
   {
@@ -21,6 +46,8 @@ export const EmptyChatDisplay = ({
 }) => {
   const isTabletView = useIsTabletView()
 
+  const { isOpen, onOpen, onClose } = useDisclosure()
+
   return (
     <VStack align="start" w="full" h="full">
       <VStack align="center" justify="center" w="full" flex={1}>
@@ -30,6 +57,16 @@ export const EmptyChatDisplay = ({
         <Text align="center" textStyle="body-2">
           Ask me about resale flats or start with one of my suggestions.
         </Text>
+
+        <Button
+          variant="link"
+          size="xs"
+          leftIcon={<BiTable />}
+          alignContent="center"
+          onClick={onOpen}
+        >
+          See example data
+        </Button>
       </VStack>
 
       <SimpleGrid columns={2} gap={2} w="full">
@@ -65,6 +102,106 @@ export const EmptyChatDisplay = ({
           </Box>
         ))}
       </SimpleGrid>
+
+      <TableInfoModal onClose={onClose} isOpen={isOpen} />
     </VStack>
+  )
+}
+
+const TableInfoModal = ({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean
+  onClose: () => void
+}) => {
+  const [tableInfo] = trpc.watson.getTableInfo.useSuspenseQuery()
+
+  const colNames = useMemo(() => {
+    const firstRow = tableInfo.sampleData[0]!
+
+    return Object.keys(firstRow)
+  }, [tableInfo.sampleData])
+
+  const isTabletView = useIsTabletView()
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="full">
+      <ModalOverlay />
+      <ModalContent>
+        <ModalCloseButton />
+        <ModalHeader>Data Information</ModalHeader>
+        <ModalBody>
+          <VStack align="start" spacing={8}>
+            <Button
+              as={NextLink}
+              size="xs"
+              variant="link"
+              leftIcon={<BiLinkExternal />}
+              target="blank"
+              title="To Vault Dataset"
+              href="https://beta.data.gov.sg/collections/189/datasets/d_8b84c4ee58e3cfc0ece0d773c8ca6abc/view"
+            >
+              Link to dataset on data.gov.sg
+            </Button>
+
+            <VStack align="start" w="full">
+              <Text textStyle={isTabletView ? 'h6' : 'h5'}>Sample data</Text>
+
+              <TableContainer overflowX="scroll" w="full">
+                <Table size={'sm'} variant="striped">
+                  <Thead>
+                    <Tr>
+                      {colNames.map((colName) => (
+                        <Th key={colName} textTransform="lowercase">
+                          {colName.replace(/([a-z])([A-Z])/g, '$1_$2')}
+                        </Th>
+                      ))}
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {tableInfo.sampleData.map((row) => (
+                      <Tr key={row.identifier}>
+                        {Object.entries(row).map(([key, value]) => (
+                          <Td key={`${row.identifier} ${value} ${key}`}>
+                            {String(value)}
+                          </Td>
+                        ))}
+                      </Tr>
+                    ))}
+                  </Tbody>
+                </Table>
+              </TableContainer>
+            </VStack>
+
+            <VStack align="start" w="full">
+              <Text textStyle={isTabletView ? 'h6' : 'h5'}>
+                Column Metadata
+              </Text>
+
+              <TableContainer w="full" overflowX="scroll">
+                <Table variant="striped" size={'sm'}>
+                  <Thead>
+                    <Tr>
+                      <Th>Column name</Th>
+                      <Th>Data Type</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {tableInfo.colMetadata.map((row) => (
+                      <Tr key={row.column_name}>
+                        <Td>{row.column_name}</Td>
+                        <Td>{row.data_type}</Td>
+                      </Tr>
+                    ))}
+                  </Tbody>
+                </Table>
+              </TableContainer>
+            </VStack>
+          </VStack>
+        </ModalBody>
+        <ModalFooter></ModalFooter>
+      </ModalContent>
+    </Modal>
   )
 }

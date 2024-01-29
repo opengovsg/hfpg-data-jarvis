@@ -241,8 +241,7 @@ SQL QUERY:
 `
 
   const chatHistoryParams =
-    await chatHistoryVectorService.findNearestEmbeddings({
-      embedding: questionEmbedding,
+    await chatHistoryVectorService.getLast10ChatMessages({
       conversationId,
     })
 
