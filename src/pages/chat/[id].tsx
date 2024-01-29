@@ -17,6 +17,7 @@ import {
   FAKE_CHAT_ID,
   conversationStoreAtom,
   tableInfoAtom,
+  chartInfoAtom
 } from '~/components/ChatWindow/chat-window.atoms'
 import { SideMenu } from '~/components/SideMenu/SideMenu'
 import { type NextPageWithLayout } from '~/lib/types'
@@ -25,6 +26,7 @@ import { ChatWindowSkeleton } from '../../components/ChatWindow/ChatWindowSkelet
 import { Navbar } from '~/components/SideMenu/Navbar'
 import { useIsTabletView } from '~/hooks/isTabletView'
 import { TableInfoLayout } from '~/components/ChatWindow/TableDataViewer'
+import { ChartInfoLayout } from '~/components/ChatWindow/ChartDataViewer'
 
 const Chat: NextPageWithLayout = () => {
   const conversationId =
@@ -104,6 +106,7 @@ const ChatWindowSuspenseWrapper = ({
     <>
       <ChatWindow conversationId={conversationId} chatMessages={initialData} />
       <TableModal />
+      <ChartModal />
     </>
   )
 }
@@ -127,6 +130,32 @@ const TableModal = () => {
         <ModalCloseButton />
         <ModalBody>
           <TableInfoLayout {...tableData} />
+        </ModalBody>
+
+        <ModalFooter></ModalFooter>
+      </ModalContent>
+    </Modal>
+  )
+}
+const ChartModal = () => {
+  const [chartData, setChartData] = useAtom(chartInfoAtom)
+  const isTabletView = useIsTabletView()
+
+  if (chartData === null) return <></>
+
+  return (
+    <Modal
+      isOpen={!!chartData}
+      onClose={() => setChartData(null)}
+      size={isTabletView ? 'full' : '6xl'}
+    >
+      <ModalOverlay />
+      <ModalContent>
+        <ModalHeader>Chart Preview</ModalHeader>
+
+        <ModalCloseButton />
+        <ModalBody>
+          <ChartInfoLayout {...chartData} />
         </ModalBody>
 
         <ModalFooter></ModalFooter>

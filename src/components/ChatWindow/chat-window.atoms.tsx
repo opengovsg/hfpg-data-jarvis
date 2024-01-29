@@ -206,3 +206,10 @@ export const tableInfoAtom = atom<null | {
   generatedQuery: string
   question: string
 }>(null)
+
+export const chartInfoAtom = atom<null | {
+  messageId: string
+  generatedQuery: string
+  question: string
+  chartUrl: string
+}>(null)
