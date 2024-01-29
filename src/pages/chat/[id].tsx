@@ -25,6 +25,7 @@ import { ChatWindowSkeleton } from '../../components/ChatWindow/ChatWindowSkelet
 import { Navbar } from '~/components/SideMenu/Navbar'
 import { useIsTabletView } from '~/hooks/isTabletView'
 import { TableInfoLayout } from '~/components/ChatWindow/TableDataViewer'
+import { LayoutWithBanner } from '~/templates/layouts/LayoutWithBanner'
 
 const Chat: NextPageWithLayout = () => {
   const conversationId =
@@ -134,5 +135,7 @@ const TableModal = () => {
     </Modal>
   )
 }
+
+Chat.getLayout = LayoutWithBanner
 
 export default Chat

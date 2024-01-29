@@ -35,7 +35,6 @@ export const ProfileMenu = () => {
       justify="start"
       position="relative"
       w="full"
-      my={4}
       ref={menuRef}
     >
       {isMenuVisible && (

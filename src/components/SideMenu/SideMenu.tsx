@@ -3,7 +3,12 @@ import { SidebarHeader } from './SidebarHeader'
 import { trpc } from '~/utils/trpc'
 import { SIDE_MENU_ITEM_PX } from './sidemenu.constants'
 import { BiPencil } from 'react-icons/bi'
-import { IconButton, Input, useToast } from '@opengovsg/design-system-react'
+import {
+  IconButton,
+  Input,
+  Link,
+  useToast,
+} from '@opengovsg/design-system-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ProfileMenu } from './ProfileMenu'
 import router from 'next/router'
@@ -38,7 +43,29 @@ export const SideMenu = () => {
           <ConversationSuspenseWrapper />
         </Suspense>
       </VStack>
-      <ProfileMenu />
+
+      <VStack spacing={2} mt={4} w="full">
+        <ProfileMenu />
+
+        <HStack pb={4} w="full" justify="space-evenly">
+          <Link
+            textStyle="caption-2"
+            target="blank"
+            color="whiteAlpha.700"
+            href="https://docs.google.com/document/d/11FpLFhvtbP8Kv3qOCB2OjJgZdxzq-PI9/edit?usp=sharing&ouid=105551205084983073810&rtpof=true&sd=true"
+          >
+            Terms of use
+          </Link>
+          <Link
+            textStyle="caption-2"
+            color="whiteAlpha.700"
+            target="blank"
+            href="https://docs.google.com/document/d/11hW2F4Kq13XES4owgDEnbWpAftRpxY-5/edit?usp=sharing&ouid=105551205084983073810&rtpof=true&sd=true"
+          >
+            Privacy Policy
+          </Link>
+        </HStack>
+      </VStack>
     </VStack>
   )
 }

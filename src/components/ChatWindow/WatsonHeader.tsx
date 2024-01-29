@@ -6,7 +6,7 @@ export const WatsonIcon = () => {
     <HStack>
       <Icon as={BiSolidBinoculars} color="white" fontSize="24px" />
       <Text textStyle="h5" color="white">
-        WatsonAI
+        Watson
       </Text>
       <Text textStyle="h5" textColor="whiteAlpha.600">
         0.01

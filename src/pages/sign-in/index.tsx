@@ -1,5 +1,5 @@
-import { Flex } from '@chakra-ui/react'
-import { RestrictedGovtMasthead } from '@opengovsg/design-system-react'
+import { Flex, Link, Text } from '@chakra-ui/react'
+import { Banner, RestrictedGovtMasthead } from '@opengovsg/design-system-react'
 import { PublicPageWrapper } from '~/components/AuthWrappers'
 
 import { RestrictedMiniFooter } from '~/components/RestrictedMiniFooter'
@@ -20,6 +20,14 @@ const SignIn: NextPageWithLayout = () => {
     <PublicPageWrapper strict>
       <Flex flexDir="column" h="inherit" minH="$100vh">
         <RestrictedGovtMasthead />
+        <Banner variant="warn">
+          <Text>
+            Watson is a work-in-progress Hackathon project for OGP&apos;s{' '}
+            <Link href="https://hack.gov.sg/about-hfpg/hfpg/" target="_blank">
+              Hack for Public Good
+            </Link>
+          </Text>
+        </Banner>
         <BaseGridLayout flex={1}>
           <NonMobileSidebarGridArea>
             <LoginImageSvgr aria-hidden />

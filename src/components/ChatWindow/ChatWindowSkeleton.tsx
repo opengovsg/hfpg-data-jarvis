@@ -67,8 +67,10 @@ export const ChatWindowSkeleton = () => {
         </Box>
 
         <Text textStyle="caption-2" textAlign="center">
-          Watson can make mistakes. Please use the information presented as a
-          reference for guidance only.
+          Watson makes use of an AI language model. Any content it generates may
+          contain errors, inconsistencies, or outdated information, and should
+          not be considered as a substitute for government advice. Please
+          fact-check and verify all AI-generated content before use.
         </Text>
       </VStack>
     </Grid>

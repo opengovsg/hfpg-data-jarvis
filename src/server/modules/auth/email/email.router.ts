@@ -44,7 +44,7 @@ export const emailSessionRouter = router({
           },
         }),
         sendMail({
-          subject: `Sign in to Watson AI`,
+          subject: `Sign in to Watson`,
           body: `Your OTP is ${otpPrefix}-<b>${token}</b>. It will expire on ${formatInTimeZone(
             expires,
             'Asia/Singapore',
