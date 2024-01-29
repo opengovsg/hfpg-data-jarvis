@@ -77,6 +77,29 @@ export class ChatMessageVectorService {
     })
   }
 
+  async getLast10ChatMessages({
+    prisma = this.prisma,
+    conversationId,
+  }: {
+    prisma?: PrismaClient
+    conversationId: number
+  }): Promise<{ role: 'user' | 'assistant'; content: string }[]> {
+    const chatMessages = await prisma.chatMessage.findMany({
+      where: {
+        conversationId,
+      },
+      take: 10,
+      orderBy: {
+        createdAt: 'desc',
+      },
+    })
+
+    return chatMessages.map((msg) => ({
+      role: msg.type === 'AGENT' ? 'assistant' : 'user',
+      content: msg.rawMessage,
+    }))
+  }
+
   async findNearestEmbeddings({
     embedding,
     prisma = this.prisma,

@@ -234,7 +234,7 @@ const ChatWindow = ({
             </FormErrorMessage>
           </FormControl>
 
-          <Text textStyle="caption-2">
+          <Text textStyle="caption-2" textAlign="center">
             Watson can make mistakes. Please use the information presented as a
             reference for guidance only.
           </Text>
