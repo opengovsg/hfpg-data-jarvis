@@ -94,10 +94,13 @@ export class ChatMessageVectorService {
       },
     })
 
-    return chatMessages.map((msg) => ({
-      role: msg.type === 'AGENT' ? 'assistant' : 'user',
-      content: msg.rawMessage,
-    }))
+    return chatMessages
+      .map((msg) => ({
+        role:
+          msg.type === 'AGENT' ? 'assistant' : ('user' as 'user' | 'assistant'),
+        content: msg.rawMessage,
+      }))
+      .reverse()
   }
 
   async findNearestEmbeddings({
