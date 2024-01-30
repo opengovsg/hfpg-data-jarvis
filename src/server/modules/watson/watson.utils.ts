@@ -222,7 +222,7 @@ export async function assertValidAndInexpensiveQuery(
       const endCost = parseFloat(match[2]! ?? 0)
 
       // If query takes more than 6s to run, we abort
-      if (endCost > 6000) {
+      if (endCost > 10000) {
         throw new ExpensiveError(endCost, query)
       }
     }

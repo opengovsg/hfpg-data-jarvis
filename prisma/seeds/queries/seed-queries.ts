@@ -10,6 +10,31 @@ export const seedQueries = async () => {
       sqlQuery: `SELECT AVG("resale_price") FROM hdb_resale_transaction;`,
     },
     {
+      rawQuestion:
+        'What is the year over year average price trend for 3-bedroom flats in woodlands ?',
+      sqlQuery: `SELECT
+      transactionYear,
+      AVG(averageYearlyPrice) AS averageYearlyPrice,
+      (AVG(averageYearlyPrice) - LAG(AVG(averageYearlyPrice)) OVER (ORDER BY transactionYear)) / LAG(AVG(averageYearlyPrice)) OVER (ORDER BY transactionYear) AS yearOnYearPriceChange
+    FROM (
+      SELECT
+        EXTRACT(YEAR FROM transaction_date) AS transactionYear,
+        town,
+        AVG(resale_price) AS averageYearlyPrice
+      FROM
+        hdb_resale_transaction
+      WHERE
+        UPPER(town) = 'WOODLANDS'
+        AND UPPER(flat_type) = '3 ROOM'
+      GROUP BY
+        EXTRACT(YEAR FROM transaction_date),
+        town) sub
+    GROUP BY
+      transactionYear
+    ORDER BY
+      transactionYear;`,
+    },
+    {
       rawQuestion: `When did the most expensive transaction in Clementi occur?`,
       sqlQuery: `SELECT
           transaction_date

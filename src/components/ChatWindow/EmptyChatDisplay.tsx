@@ -36,7 +36,10 @@ const suggestions = [
     header: 'Explain the trend',
     content: 'in price per size of 3-bedroom flats in Bedok in 2023',
   },
-  { header: 'Find the most', content: 'expensive flat sold in Clementi' },
+  {
+    header: 'What is the year over year average price trend',
+    content: 'for 3-bedroom flats in Woodlands?',
+  },
 ] as const
 
 export const EmptyChatDisplay = ({
