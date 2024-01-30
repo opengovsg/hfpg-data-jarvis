@@ -1,3 +1,5 @@
+import { TOKEN_MAX_LIMIT } from './watson.utils'
+
 /** Throw this error is the query is invalid */
 export class InvalidQueryError extends Error {
   constructor(sqlQuery: string, customMessage?: string) {
@@ -37,7 +39,7 @@ export class ExpensiveError extends Error {
 
 // TODO: Throw this error from response
 export class TokenExceededError extends Error {
-  constructor(tokenCount = 4096) {
+  constructor(tokenCount = TOKEN_MAX_LIMIT) {
     super(`Token count exceeded at ${tokenCount}`)
   }
 

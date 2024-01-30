@@ -16,9 +16,11 @@ import * as dateFns from 'date-fns'
 import { utcToZonedTime } from 'date-fns-tz'
 import { type Logger } from 'pino'
 
+export const TOKEN_MAX_LIMIT = 16000 // gpt 3.5 16k
+
 export const doesPromptExceedTokenLimit = (prompt: string) => {
   // appromximation that 4 char === 1 token
-  return Math.floor(prompt.length / 4) > 4096
+  return Math.floor(prompt.length / 4) > 16000
 }
 
 /**
