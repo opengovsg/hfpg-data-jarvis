@@ -136,17 +136,29 @@ const TableInfoModal = ({
         <ModalHeader>Data Information</ModalHeader>
         <ModalBody>
           <VStack align="start" spacing={8}>
-            <Button
-              as={NextLink}
-              size="xs"
-              variant="link"
-              leftIcon={<BiLinkExternal />}
-              target="blank"
-              title="To Vault Dataset"
-              href="https://beta.data.gov.sg/collections/189/datasets/d_8b84c4ee58e3cfc0ece0d773c8ca6abc/view"
-            >
-              Link to dataset on data.gov.sg
-            </Button>
+            <VStack align="start">
+              <Text>
+                Our dataset contains information about all HDB resale
+                transactions commenced from 1990-2017 pulled.
+              </Text>
+
+              <Text>
+                Please refer to the columns and sample data below to get a good
+                sensing of what questions to ask Watson.
+              </Text>
+
+              <Button
+                as={NextLink}
+                size="xs"
+                variant="link"
+                leftIcon={<BiLinkExternal />}
+                target="blank"
+                title="To Vault Dataset"
+                href="https://beta.data.gov.sg/collections/189/datasets/d_8b84c4ee58e3cfc0ece0d773c8ca6abc/view"
+              >
+                Link to dataset on data.gov.sg
+              </Button>
+            </VStack>
 
             <VStack align="start" w="full">
               <Text textStyle={isTabletView ? 'h6' : 'h5'}>Sample data</Text>
