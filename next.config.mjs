@@ -13,7 +13,7 @@ const ContentSecurityPolicy = `
   img-src 'self' data: blob: ${
     // For displaying images from R2
     env.R2_PUBLIC_HOSTNAME ? `https://${env.R2_PUBLIC_HOSTNAME}` : ''
-  };
+  } ${env.S3_BUCKET_URL}; 
   frame-src 'self';
   object-src 'none';
   script-src 'self' ${env.NODE_ENV === 'production' ? '' : "'unsafe-eval'"};
