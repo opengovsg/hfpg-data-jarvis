@@ -42,6 +42,9 @@ RUN adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/public ./public
 
+# TODO: RM this hack after hackathon
+COPY --from=builder /app/node_modules/pyodide ./node_modules/pyodide
+
 # Set the correct permission for prerender cache
 RUN mkdir .next
 RUN chown nextjs:nodejs .next
