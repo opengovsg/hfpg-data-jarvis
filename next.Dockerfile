@@ -60,14 +60,13 @@ RUN chown -R node:node node_modules/pyodide
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 
-USER nextjs
+
+# TODO: Undo using root user to run app after we find correct perms for app. we should have least privellege to USER nextjs
+# USER nextjs
+USER root
 
 EXPOSE 8080
 
 ENV PORT 8080
-
-RUN ls - l | grep nextjs
-RUN whoami
-RUN chown -R $(whoami) node_modules/pyodide
 
 CMD ["node", "server.js"]
