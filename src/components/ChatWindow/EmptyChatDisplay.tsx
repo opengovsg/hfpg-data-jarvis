@@ -133,18 +133,18 @@ const TableInfoModal = ({
       <ModalOverlay />
       <ModalContent>
         <ModalCloseButton />
-        <ModalHeader>Data Information</ModalHeader>
+        <ModalHeader>About this data</ModalHeader>
         <ModalBody>
           <VStack align="start" spacing={8}>
             <VStack align="start">
               <Text>
                 Our dataset contains information about all HDB resale
-                transactions commenced from 1990-2017 pulled.
+                transactions made between 1990 and 2017.
               </Text>
 
               <Text>
-                Please refer to the columns and sample data below to get a good
-                sensing of what questions to ask Watson.
+                Please refer to the data below to see what you can ask Watson
+                about.
               </Text>
 
               <Button
@@ -153,10 +153,10 @@ const TableInfoModal = ({
                 variant="link"
                 leftIcon={<BiLinkExternal />}
                 target="blank"
-                title="To Vault Dataset"
+                title="Explore full dataset"
                 href="https://beta.data.gov.sg/collections/189/datasets/d_8b84c4ee58e3cfc0ece0d773c8ca6abc/view"
               >
-                Link to dataset on data.gov.sg
+                Explore full dataset
               </Button>
             </VStack>
 
