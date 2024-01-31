@@ -12,5 +12,19 @@ services:
       - POSTGRES_USER=root
       - POSTGRES_PASSWORD=root
 
+  localstack:
+    image: localstack/localstack:0.14.3
+    environment:
+      - AWS_DEFAULT_REGION=ap-southeast-1
+      - SERVICES=s3
+      - EDGE_PORT=4566
+      - DATA_DIR=/tmp/localstack/data
+      - HOST_TMP_FOLDER=/tmp
+    ports:
+      - '4566:4566'
+    volumes:
+      - './scripts/localstack:/docker-entrypoint-initaws.d'
+      - './.localstack:/tmp/localstack'
+
 volumes:
   postgres-volume:

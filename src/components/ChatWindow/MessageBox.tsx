@@ -23,6 +23,7 @@ import { useIsTabletView } from '~/hooks/isTabletView'
 import { trpc } from '~/utils/trpc'
 import { useSetAtom } from 'jotai'
 import { tableInfoAtom } from './chat-window.atoms'
+import { GenerateChartButton } from '../GraphVisualisation'
 
 const WatsonIcon = () => {
   const isTabletView = useIsTabletView()
@@ -192,6 +193,7 @@ export const MessageBox = ({
                     />
                   </Tooltip>
                 )}
+                <GenerateChartButton messageId={Number(id)} />
                 <Tooltip label="Good response">
                   <IconButton
                     aria-label="useful"

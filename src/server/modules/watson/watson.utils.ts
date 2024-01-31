@@ -10,11 +10,15 @@ import {
 } from './watson.errors'
 
 import { astVisitor, parse, type Statement } from 'pgsql-ast-parser'
-import { VALID_TABLE_NAMES } from '../prompt/sql/types'
+import { VALID_TABLE_NAMES, type ValidTableName } from '../prompt/sql/types'
 import { type ChatHistoryGroup } from './watson.types'
 import * as dateFns from 'date-fns'
 import { utcToZonedTime } from 'date-fns-tz'
 import { type Logger } from 'pino'
+import { TRPCError } from '@trpc/server'
+import { getTableInfo } from '../prompt/sql/getTablePrompt'
+import { readonlyWatsonPrismaClient } from '~/server/prisma'
+import { OpenAIClient } from './open-ai'
 
 export const TOKEN_MAX_LIMIT = 16000 // gpt 3.5 16k
 
@@ -70,7 +74,7 @@ type OpenAiSuccess = {
 
 // Parse response from OpenAI. Checks if we have faced any errors from `finish_reason` and map them to comprehensible errors on our end
 export function parseOpenAiResponse(
-  question: string,
+  prompt: string,
   chatResponse: ChatCompletion,
 ): OpenAi {
   const latestResponse = chatResponse.choices[0]!
@@ -79,7 +83,7 @@ export function parseOpenAiResponse(
 
   if (finishReason === 'length') {
     // This is an approximation
-    throw new TokenExceededError(Math.floor(question.length / 4))
+    throw new TokenExceededError(Math.floor(prompt.length / 4))
   }
 
   if (finishReason !== 'stop') {
@@ -277,4 +281,100 @@ export const mapDateToChatHistoryGroup = (
   }
 
   return 'Older'
+}
+
+/** Constructs a prompt that will generate matplotlib code. When this code gets executed, a base64 hash of the jpeg image will be returned */
+export const generateMatPlotLibCode = async ({
+  messageId,
+  table,
+  userId,
+  prisma,
+}: {
+  messageId: number
+  userId: string
+  table: ValidTableName
+  prisma: PrismaClient
+}) => {
+  const { question, sqlQuery } = await prisma.chatMessage.findFirstOrThrow({
+    where: {
+      id: messageId,
+      conversation: { userId },
+      question: { not: null },
+      sqlQuery: { not: null },
+    },
+    select: { question: true, sqlQuery: true },
+  })
+
+  if (question === null || sqlQuery === null) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: 'no stored question or sql query for this chat message',
+    })
+  }
+
+  const tableInfo = await getTableInfo(table, prisma)
+
+  const sqlRes = await readonlyWatsonPrismaClient.$queryRawUnsafe(sqlQuery)
+
+  const stringifiedRes = JSON.stringify(sqlRes, (_, v) =>
+    typeof v === 'bigint' ? v.toString() : v,
+  )
+
+  const prompt = `You are an expert data analyst with the matplotlib python library. 
+
+  A user has sent you data generated from an SQL database with the following SQL schema, SQL query and data below:
+  ----------------------
+  SQL SCHEMA: ${tableInfo}
+  ----------------------
+  SQL QUERY: ${sqlQuery}
+  ----------------------
+  SQL DATA:
+  ${stringifiedRes}
+  ----------------------
+  
+  With these information, generate the most appropriate matplotlib graph for the user. Use the python template below and replace the section commented as #MATPLOTLIB with your generated code.
+  
+  Do not modify the template and return only the python code and nothing else.
+  
+  --------------------
+  PYTHON TEMPLATE:
+   import base64
+      import io 
+      import numpy as np
+      import matplotlib
+      from matplotlib import pyplot as plt
+      
+      matplotlib.use('Agg')
+
+      #MATPLOTLIB
+      
+      # Create bar graph
+      pic_IObytes = io.BytesIO()
+      plt.savefig(pic_IObytes, format='jpg')
+      pic_IObytes.seek(0)
+      pic_hash = base64.b64encode(pic_IObytes.read()).decode('utf-8')
+      pic_hash
+  ----------------------------
+  `
+
+  const openAiRes = await OpenAIClient.chat.completions.create({
+    model: 'gpt-3.5-turbo-16k',
+    messages: [
+      {
+        role: 'user',
+        content: prompt,
+      },
+    ],
+  })
+
+  const queryResponse = parseOpenAiResponse(prompt, openAiRes)
+
+  if (queryResponse.type === 'failure') {
+    throw new TRPCError({
+      code: 'INTERNAL_SERVER_ERROR',
+      message: 'something went wrong generating openai code for this question',
+    })
+  }
+
+  return queryResponse.response
 }

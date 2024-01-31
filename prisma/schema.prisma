@@ -32,9 +32,9 @@ model HdbResaleTransaction {
   leaseCommenceYear      Int    @map("lease_commence_year")
   remainingLeaseInMonths Int    @map("remaining_lease_in_months")
   resalePrice            Float  @map("resale_price")
-  latitude               Float?  @map("latitude")
+  latitude               Float? @map("latitude")
   longitude              Float? @map("longitude")
-  
+
   @@map("hdb_resale_transaction")
 }
 
@@ -73,6 +73,8 @@ model ChatMessage {
 
   isGoodResponse    Boolean?
   badResponseReason String?
+
+  visualisedGraphS3ObjectKey String?
 
   // Agent message only attributes
   sqlQuery String?

@@ -1,11 +1,20 @@
 import { protectedProcedure, router } from '~/server/trpc'
 import { z } from 'zod'
-import { mapDateToChatHistoryGroup } from './watson.utils'
+import {
+  generateMatPlotLibCode,
+  mapDateToChatHistoryGroup,
+} from './watson.utils'
 import _ from 'lodash'
 import { prisma, readonlyWatsonPrismaClient } from '~/server/prisma'
 import { FAKE_CHAT_ID } from '~/components/ChatWindow/chat-window.atoms'
 import { TRPCError } from '@trpc/server'
 import { getTableColumnMetadata } from '../prompt/sql/sql.utils'
+import { s3Client } from '../s3.service'
+import { PyodideService } from './chart.service'
+import { v4 } from 'uuid'
+import { env } from '~/env.mjs'
+import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 const tableDataQuerySchema = z.array(z.record(z.unknown()))
 
@@ -77,6 +86,7 @@ export const watsonRouter = router({
             type: true,
             suggestions: true,
             sqlQuery: true,
+            visualisedGraphS3ObjectKey: true,
             badResponseReason: true,
             isGoodResponse: true,
             question: true,
@@ -190,4 +200,117 @@ export const watsonRouter = router({
         hasNext: tableRecords.data.length > 10,
       }
     }),
+  getGraphs3ObjectKeyByMessageId: protectedProcedure
+    .input(z.object({ messageId: z.number() }))
+    .query(async ({ input: { messageId }, ctx: { user, prisma } }) => {
+      const { visualisedGraphS3ObjectKey } =
+        await prisma.chatMessage.findFirstOrThrow({
+          where: { id: messageId, conversation: { userId: user.id } },
+          select: { visualisedGraphS3ObjectKey: true },
+        })
+
+      return { s3ObjectKey: visualisedGraphS3ObjectKey }
+    }),
+  getGraphPresignedUrl: protectedProcedure
+    .input(z.object({ messageId: z.number() }))
+    .query(async ({ input: { messageId }, ctx: { user, prisma } }) => {
+      const { visualisedGraphS3ObjectKey } =
+        await prisma.chatMessage.findFirstOrThrow({
+          where: { id: messageId, conversation: { userId: user.id } },
+          select: { visualisedGraphS3ObjectKey: true },
+        })
+
+      if (visualisedGraphS3ObjectKey === null) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'No s3 object key for message id',
+        })
+      }
+
+      const command = new GetObjectCommand({
+        Bucket: env.S3_BUCKET_NAME,
+        Key: visualisedGraphS3ObjectKey,
+      })
+
+      // expires in an hour
+      return getSignedUrl(s3Client, command, { expiresIn: 3600 })
+    }),
+
+  // TODO: make this async job, in interest of time just assume keeping a connection alive of ~30s will suffice for demo day
+  generateGraph: protectedProcedure
+    .input(z.object({ messageId: z.number() }))
+    .mutation(
+      async ({
+        input: { messageId },
+        ctx: { user, prisma, logger },
+      }): Promise<{ s3ObjectKey: string; messageId: number }> => {
+        // if already has valid visualisation, just return previous response
+        const { visualisedGraphS3ObjectKey } =
+          await prisma.chatMessage.findFirstOrThrow({
+            where: { id: messageId, conversation: { userId: user.id } },
+            select: { visualisedGraphS3ObjectKey: true },
+          })
+
+        if (!!visualisedGraphS3ObjectKey) {
+          return {
+            s3ObjectKey: visualisedGraphS3ObjectKey,
+            messageId,
+          }
+        }
+
+        const matplotLibCode = await generateMatPlotLibCode({
+          messageId,
+          prisma,
+          // TODO: Make this an input when we support more tables
+          table: 'hdb_resale_transaction',
+          userId: user.id,
+        })
+
+        const pyodide = await PyodideService()
+
+        try {
+          const base64JpegHash: string =
+            await pyodide.runPythonAsync(matplotLibCode)
+
+          const buffer = Buffer.from(base64JpegHash, 'base64')
+
+          const s3ObjectKey = `${user.id}/graphs/${v4()}.jpg`
+
+          await s3Client.send(
+            new PutObjectCommand({
+              Bucket: env.S3_BUCKET_NAME,
+              Body: buffer,
+              ContentEncoding: 'base64',
+              ContentType: 'image/jpeg',
+              Key: s3ObjectKey,
+            }),
+          )
+
+          logger.info(
+            { s3ObjectKey, bucket: env.S3_BUCKET_NAME },
+            'Successfully uploaded to s3 bucket',
+          )
+
+          await prisma.chatMessage.update({
+            where: { id: messageId },
+            data: { visualisedGraphS3ObjectKey: s3ObjectKey },
+          })
+
+          return { s3ObjectKey, messageId }
+        } catch (e) {
+          let message = `Unexpected error occurred`
+          if (e instanceof TRPCError) {
+            throw e
+          }
+
+          if (e instanceof Error) {
+            message = e.message
+          }
+
+          logger.error({ messageId, userId: user.id }, message)
+
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message })
+        }
+      },
+    ),
 })

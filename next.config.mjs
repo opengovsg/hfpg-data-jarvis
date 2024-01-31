@@ -45,7 +45,7 @@ const config = {
   /** We run eslint as a separate task in CI */
   eslint: { ignoreDuringBuilds: !!process.env.CI },
   images: {
-    domains: [env.R2_PUBLIC_HOSTNAME ?? ''].filter((d) => d),
+    domains: [env.S3_BUCKET_URL].filter((d) => d),
   },
   typescript: {
     ignoreBuildErrors: true,

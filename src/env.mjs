@@ -81,6 +81,9 @@ const server = z
     POSTMAN_API_KEY: z.string().optional(),
     SENDGRID_API_KEY: z.string().optional(),
     OPEN_AI_KEY: z.string(),
+    // default var in local dev is `test`
+    S3_BUCKET_NAME: z.string().default('test'),
+    S3_BUCKET_URL: z.string().default('localhost'),
     SENDGRID_FROM_ADDRESS: z.union([
       z.string().email().optional(),
       z.string().length(0),
@@ -142,6 +145,8 @@ const processEnv = {
   SENDGRID_FROM_ADDRESS: process.env.SENDGRID_FROM_ADDRESS,
   SESSION_SECRET: process.env.SESSION_SECRET,
   R2_ACCESS_KEY_ID: process.env.R2_ACCESS_KEY_ID,
+  S3_BUCKET_NAME: process.env.S3_BUCKET_NAME,
+  S3_BUCKET_URL: process.env.S3_BUCKET_URL,
   R2_ACCOUNT_ID: process.env.R2_ACCOUNT_ID,
   R2_BUCKET_NAME: process.env.R2_BUCKET_NAME,
   R2_AVATARS_DIRECTORY: process.env.R2_AVATARS_DIRECTORY,
