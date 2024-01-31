@@ -4,6 +4,7 @@
  */
 const { env } = await import('./src/env.mjs')
 
+// TODO: RM hardcoded img-src, hacky fix for demo day
 const ContentSecurityPolicy = `
   default-src 'none';
   base-uri 'self';
@@ -13,7 +14,9 @@ const ContentSecurityPolicy = `
   img-src 'self' data: blob: ${
     // For displaying images from R2
     env.R2_PUBLIC_HOSTNAME ? `https://${env.R2_PUBLIC_HOSTNAME}` : ''
-  } ${env.S3_BUCKET_URL}; 
+  } ${
+    env.S3_BUCKET_URL ? env.S3_BUCKET_URL : ''
+  } https://watson-staging-files.s3.ap-southeast-1.amazonaws.com;  
   frame-src 'self';
   object-src 'none';
   script-src 'self' ${env.NODE_ENV === 'production' ? '' : "'unsafe-eval'"};
@@ -23,7 +26,7 @@ const ContentSecurityPolicy = `
     env.R2_ACCOUNT_ID
       ? `https://*.${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
       : ''
-  };
+  }; 
   worker-src 'self' blob:;
   ${env.NODE_ENV === 'production' ? 'upgrade-insecure-requests' : ''}
 `
@@ -50,7 +53,11 @@ const config = {
   /** We run eslint as a separate task in CI */
   eslint: { ignoreDuringBuilds: !!process.env.CI },
   images: {
-    domains: [env.S3_BUCKET_URL].filter((d) => d),
+    domains: [
+      // TODO: remove after demo, try hardcoding because somehow domains dont get captured
+      'watson-staging-files.s3.ap-southeast-1.amazonaws.com',
+      env.S3_BUCKET_URL,
+    ].filter((d) => d),
   },
   typescript: {
     ignoreBuildErrors: true,
