@@ -12,7 +12,7 @@ const requiredStandaloneDependencies = [
 
 export const config = {
   unstable_includeFiles: requiredStandaloneDependencies.map(
-    (dep) => `node_modules/${dep}/**/*.+(js|json)`,
+    (dep) => `node_modules/${dep}/**`,
   ),
 }
 
