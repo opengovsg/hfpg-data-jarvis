@@ -52,6 +52,9 @@ RUN chown nextjs:nodejs .next
 # TODO: Find the CORRECT and exact permissions for node_modules/pyodide. Doing 777 IS REALLY BAD security wise
 # prevent EACCESS errors by giving read, write and execute access to node_modules from pyodide
 RUN chmod -R 777 node_modules
+RUN -R chmod +rwx node_modules
+RUN -R nextjs:nodejs node_modules
+RUN -R node:node node_modules
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
