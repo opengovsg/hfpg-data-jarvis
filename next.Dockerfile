@@ -49,16 +49,9 @@ COPY --from=builder /app/node_modules/pyodide ./node_modules/pyodide
 RUN mkdir .next
 RUN chown nextjs:nodejs .next
 
-RUN ls -a
-RUN cd node_modules && ls -a | grep pyodide
-RUN cd node_modules/pyodide && ls -a
-
+# TODO: Find the CORRECT and exact permissions for node_modules/pyodide. Doing 777 IS REALLY BAD security wise
 # prevent EACCESS errors by giving read, write and execute access to node_modules from pyodide
-# TODO: Remove chown -R 755 to node_modules root, just doing this to try if we can prevent EACCES errors
-RUN chown -R nextjs:nodejs node_modules
-RUN chown -R nextjs:nodejs node_modules/pyodide
-RUN chown -R node:node node_modules/pyodide
-RUN chown -R 755 node_modules/pyodide
+RUN chown -R 777 node_modules/pyodide
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
