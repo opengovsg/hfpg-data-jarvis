@@ -133,9 +133,30 @@ export const seedQueries = async () => {
          FROM 
             hdb_resale_transaction 
          WHERE 
-            town = 'ANG MO KIO' 
+          UPPER(town) = 'ANG MO KIO' 
          LIMIT 1)
     ) / 1000 AS distance_in_km;`,
+    },
+    {
+      rawQuestion: 'What is the average resale amount in Toa Payoh in 2023?',
+      sqlQuery: `SELECT
+        average(resale_price) AS avg_resale_price
+      FROM
+        hdb_resale_transaction
+      WHERE 
+        UPPER(town) = 'TOA PAYOH'
+        AND EXTRACT(YEAR FROM "transaction_date") = '2023';`,
+    },
+    {
+      rawQuestion: 'How many flats were sold in Toa Payoh in December 2023?',
+      sqlQuery: `SELECT
+        count(resale_price) AS num_flat_sold
+      FROM
+        hdb_resale_transaction
+      WHERE 
+        UPPER(town) = 'TOA PAYOH'
+        AND EXTRACT(YEAR FROM "transaction_date") = '2023'
+        AND EXTRACT(MONTH FROM "transaction_date") = '12';`,
     },
   ]
 

@@ -8,10 +8,10 @@ import { differenceInMonths } from 'date-fns'
 
 const filePaths = [
   'fixtures/resale-flats-after-jan-2017-w-latlong.csv',
-  'fixtures/resale-flats-1990-1999.csv',
-  'fixtures/resale-flats-2000-2012.csv',
-  'fixtures/resale-flats-2012-2014.csv',
-  'fixtures/resale-flats-2015-2016.csv',
+  'fixtures/resale-flats-2015-2016-w-latlong.csv',
+  'fixtures/resale-flats-2012-2014-w-latlong.csv',
+  'fixtures/resale-flats-2000-2012-w-latlong.csv',
+  'fixtures/resale-flats-1990-1999-w-latlong.csv',
 ]
 
 const rawCsvResaleFlatSchema = z.object({
@@ -168,7 +168,7 @@ const main = async () => {
           createDataInput.length = 0
         }
 
-        console.log('>> completed seeding db')
+        console.log('>> completed seeding resale db')
       },
     })
   }

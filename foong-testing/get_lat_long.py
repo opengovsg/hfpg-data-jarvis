@@ -1,7 +1,7 @@
 import requests
 import pandas as pd
 
-resale_df = pd.read_csv('ResaleflatpricesbasedonregistrationdatefromJan2017onwards.csv')
+resale_df = pd.read_csv('resale-flats-2015-2016.csv')
 
 unique_street = resale_df['street_name'].unique()
 
@@ -15,11 +15,14 @@ for street_name in unique_street:
 
     data = response.json()
     
-    new_row = {'street_name': street_name, 'latitude': data['results'][0]['LATITUDE'], 'longitude': data['results'][0]['LONGITUDE']}
-    print(new_row)
-    lat_long_df = lat_long_df._append(new_row, ignore_index=True)
+    try:
+        new_row = {'street_name': street_name, 'latitude': data['results'][0]['LATITUDE'], 'longitude': data['results'][0]['LONGITUDE']}
+        print(new_row)
+        lat_long_df = lat_long_df._append(new_row, ignore_index=True)
+    except:
+        pass
     
 # lat_long_df.to_csv('street_lat_long.csv', index=False)
 
 merged_df = pd.merge(resale_df, lat_long_df, on='street_name', how='left') 
-merged_df.to_csv('resale_flat_price_w_lat_long.csv', index=False)
+merged_df.to_csv('resale-flats-2015-2016_w_lat_long.csv', index=False)
