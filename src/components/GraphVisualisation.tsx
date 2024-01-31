@@ -20,12 +20,15 @@ import { trpc } from '~/utils/trpc'
 import Suspense from './Suspense'
 import { ErrorBoundary } from 'react-error-boundary'
 import { DefaultFallback } from './ErrorBoundary'
+import { Prose } from '@nikolovlazar/chakra-ui-prose'
 
 // TODO: Rethink UX if this becomes a real thing
 export const GenerateChartButton = ({
   messageId,
+  question,
 }: {
   messageId: number
+  question: string
 }): JSX.Element => {
   const utils = trpc.useUtils()
 
@@ -37,7 +40,9 @@ export const GenerateChartButton = ({
   const [{ s3ObjectKey }] =
     trpc.watson.getGraphs3ObjectKeyByMessageId.useSuspenseQuery({ messageId })
 
-  const generateGraphMutation = trpc.watson.generateGraph.useMutation()
+  const generateGraphMutation = trpc.watson.generateGraph.useMutation({
+    retry: false,
+  })
 
   const toast = useToast({ isClosable: true })
 
@@ -96,6 +101,7 @@ export const GenerateChartButton = ({
 
       {isOpen && (
         <ViewChartModal
+          question={question}
           isOpen={isOpen}
           onClose={onClose}
           messageId={messageId}
@@ -109,9 +115,11 @@ const ViewChartModal = ({
   isOpen,
   onClose,
   messageId,
+  question,
 }: {
   isOpen: boolean
   messageId: number
+  question: string
   onClose: () => void
 }) => {
   return (
@@ -121,7 +129,10 @@ const ViewChartModal = ({
         <ModalCloseButton />
         <ModalHeader>Generated visualisation</ModalHeader>
         <ModalBody>
-          <VStack w="full">
+          <VStack w="full" align="start">
+            <Prose>
+              <blockquote style={{ margin: 0 }}>{question}</blockquote>
+            </Prose>
             <ErrorBoundary FallbackComponent={DefaultFallback}>
               <Suspense fallback={<Skeleton width="500px" height="500px" />}>
                 <ChartDisplay messageId={messageId} />

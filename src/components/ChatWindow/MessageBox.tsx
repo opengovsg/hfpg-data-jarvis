@@ -193,7 +193,10 @@ export const MessageBox = ({
                         minW="fit-content"
                       />
                     </Tooltip>
-                    <GenerateChartButton messageId={Number(id)} />
+                    <GenerateChartButton
+                      messageId={Number(id)}
+                      question={question ?? ''}
+                    />
                   </>
                 )}
 
