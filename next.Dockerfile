@@ -49,15 +49,20 @@ COPY --from=builder /app/node_modules/pyodide ./node_modules/pyodide
 RUN mkdir .next
 RUN chown nextjs:nodejs .next
 
+RUN ls -a
+RUN cd node_modules && ls -a | grep pyodide
+RUN cd node_modules/pyodide && ls -a
+
+# prevent EACCESS errors by giving read, write and execute access to node_modules from pyodide
+# TODO: Remove chown -R 755 to node_modules root, just doing this to try if we can prevent EACCES errors
+RUN chown -R 755 nextjs:nodejs node_modules
+
+
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 
-# prevent EACCESS errors by giving read, write and execute access to node_modules from pyodide
-# TODO: Remove chown -R 755 to node_modules root, just doing this to try if we can prevent EACCES errors
-RUN chown -R 755 node:node app/node_modules
-RUN chown -R 755 nextjs:nodejs app/node_modules
 
 USER nextjs
 
