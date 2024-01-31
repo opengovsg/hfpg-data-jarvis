@@ -33,6 +33,11 @@ const ContentSecurityPolicy = `
  */
 /** @type {import("next").NextConfig} */
 const config = {
+  experimental: {
+    outputFileTracingIncludes: {
+      '/api/watson': ['node_modules/pyodide/**/*.*'],
+    },
+  },
   reactStrictMode: true,
   /**
    * Dynamic configuration available for the browser and server.
