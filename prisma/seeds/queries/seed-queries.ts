@@ -137,6 +137,10 @@ export const seedQueries = async () => {
          LIMIT 1)
     ) / 1000 AS distance_in_km;`,
     },
+    {
+      rawQuestion: 'What is the average rent in Ang Mo Kio for 2023?',
+      sqlQuery: `SELECT AVG("monthly_rent") from hdb_rental WHERE EXTRACT(YEAR FROM "rent_approval_date") = '2023';`,
+    },
   ]
 
   const vectorStore = new PreviousSqlVectorService(prisma)

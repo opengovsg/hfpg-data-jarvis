@@ -5,6 +5,7 @@
  */
 import { PrismaClient } from '@prisma/client'
 import seedResaleFromCsv from './seeds/hdb/seed-hdb-dataset'
+import seedRentalFromCsv from './seeds/hdb/seed-hdb-rental-dataset'
 import { seedQueries } from './seeds/queries/seed-queries'
 
 const prisma = new PrismaClient()
@@ -12,6 +13,7 @@ const prisma = new PrismaClient()
 async function main() {
   // Nothing
   await seedResaleFromCsv()
+  await seedRentalFromCsv()
   await seedQueries()
 }
 
