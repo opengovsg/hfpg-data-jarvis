@@ -58,6 +58,9 @@ RUN chown -R node:node node_modules/pyodide
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=node:node /app/.next/standalone ./
+
+# https://github.com/vercel/next.js/issues/18412
+COPY --from=builder /app/next.config.js ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 
 
