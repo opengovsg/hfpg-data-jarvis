@@ -55,6 +55,7 @@ RUN chmod -R 777 node_modules
 RUN -R chmod +rwx node_modules
 RUN -R nextjs:nodejs node_modules
 RUN -R node:node node_modules
+RUN chmod -R +x node_modules
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
