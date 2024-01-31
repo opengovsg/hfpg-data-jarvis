@@ -323,16 +323,21 @@ export const generateMatPlotLibCode = async ({
   const prompt = `You are an expert data analyst with the matplotlib python library. 
 
   A user has sent you data generated from an SQL database with the following SQL schema, SQL query and data below:
-  ----------------------
+  --------------------
   SQL SCHEMA: ${tableInfo}
-  ----------------------
+  --------------------
   SQL QUERY: ${sqlQuery}
-  ----------------------
+  --------------------
   SQL DATA:
   ${stringifiedRes}
-  ----------------------
+  --------------------
   
-  With these information, generate the most appropriate matplotlib graph for the user. Use the python template below and replace the section commented as #MATPLOTLIB with your generated code.
+  With the information above, generate the most appropriate matplotlib graph that best answers the following question:
+  --------------------
+  QUESTION: ${question}
+  --------------------
+
+  Use the python template below and replace the section commented as #MATPLOTLIB with your generated code.
   
   Do not modify the template and return only the python code and nothing else.
   
@@ -354,7 +359,7 @@ export const generateMatPlotLibCode = async ({
       pic_IObytes.seek(0)
       pic_hash = base64.b64encode(pic_IObytes.read()).decode('utf-8')
       pic_hash
-  ----------------------------
+      --------------------
   `
 
   const openAiRes = await OpenAIClient.chat.completions.create({

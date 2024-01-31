@@ -34,8 +34,8 @@ export const SideMenu = () => {
         <Suspense
           fallback={
             <>
-              {[...Array(10)].map((key) => (
-                <Skeleton key={key} w="100%" h="40px" />
+              {[...Array(10)].map((_, indx) => (
+                <Skeleton key={indx} w="100%" h="40px" />
               ))}
             </>
           }

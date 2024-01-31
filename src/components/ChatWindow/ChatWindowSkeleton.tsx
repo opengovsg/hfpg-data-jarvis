@@ -28,8 +28,8 @@ export const ChatWindowSkeleton = () => {
     >
       {!isTabletView && <WatsonMenu />}
       <VStack spacing={6} mt={6} overflowY="scroll" px={8}>
-        {[...Array(6)].map((key) => (
-          <HStack key={key} w="100%" spacing={4} maxH="56px">
+        {[...Array(6)].map((_, indx) => (
+          <HStack key={indx} w="100%" spacing={4} maxH="56px">
             <SkeletonCircle size="50px" />
             <Skeleton h="56px" flex={1} />
           </HStack>

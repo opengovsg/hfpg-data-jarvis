@@ -8,6 +8,7 @@ import {
   ModalOverlay,
   Skeleton,
   Tooltip,
+  VStack,
   useDisclosure,
 } from '@chakra-ui/react'
 import { IconButton, Spinner, useToast } from '@opengovsg/design-system-react'
@@ -79,7 +80,7 @@ export const GenerateChartButton = ({
 
   return (
     <>
-      <Tooltip label="View Generated Chart">
+      <Tooltip label="View generated visualisation">
         <IconButton
           // TODO: Set a style for this to be shared across all iconbuttons
           color={'gray.500'}
@@ -88,7 +89,7 @@ export const GenerateChartButton = ({
           minH={'14px'}
           minW="fit-content"
           icon={<BiLineChart size="14px" />}
-          aria-label="view-chart"
+          aria-label="view-visualisation"
           onClick={onOpen}
         />
       </Tooltip>
@@ -118,13 +119,15 @@ const ViewChartModal = ({
       <ModalOverlay />
       <ModalContent>
         <ModalCloseButton />
-        <ModalHeader>Chart</ModalHeader>
+        <ModalHeader>Generated visualisation</ModalHeader>
         <ModalBody>
-          <ErrorBoundary FallbackComponent={DefaultFallback}>
-            <Suspense fallback={<Skeleton width="500px" height="500px" />}>
-              <ChartDisplay messageId={messageId} />
-            </Suspense>
-          </ErrorBoundary>
+          <VStack w="full">
+            <ErrorBoundary FallbackComponent={DefaultFallback}>
+              <Suspense fallback={<Skeleton width="500px" height="500px" />}>
+                <ChartDisplay messageId={messageId} />
+              </Suspense>
+            </ErrorBoundary>
+          </VStack>
         </ModalBody>
         <ModalFooter></ModalFooter>
       </ModalContent>
@@ -137,5 +140,5 @@ const ChartDisplay = ({ messageId }: { messageId: number }) => {
     messageId,
   })
 
-  return <Image src={presignedUrl} alt="graph" width={500} height={500} />
+  return <Image src={presignedUrl} alt="graph" width={1000} height={1000} />
 }
