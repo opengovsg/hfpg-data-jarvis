@@ -191,7 +191,7 @@ const TableInfoModal = ({
 
             <VStack align="start" w="full">
               <Text textStyle={isTabletView ? 'h6' : 'h5'}>
-                Column Metadata
+                Column metadata
               </Text>
 
               <TableContainer w="full" overflowX="scroll">
