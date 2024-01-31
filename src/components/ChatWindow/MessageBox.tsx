@@ -174,26 +174,29 @@ export const MessageBox = ({
             {isCompleted && (
               <HStack spacing={2} h="20px">
                 {!!generatedQuery && (
-                  <Tooltip label="View Data">
-                    <IconButton
-                      aria-label="useful"
-                      onClick={async () => {
-                        setTableInfo({
-                          messageId: id,
-                          generatedQuery,
-                          question: question ?? '',
-                        })
-                      }}
-                      icon={<BsTable size="14px" />}
-                      variant="link"
-                      minH={'14px'}
-                      p={1}
-                      color={localIsUseful ? 'gray.500' : 'gray.400'}
-                      minW="fit-content"
-                    />
-                  </Tooltip>
+                  <>
+                    <Tooltip label="View Data">
+                      <IconButton
+                        aria-label="useful"
+                        onClick={async () => {
+                          setTableInfo({
+                            messageId: id,
+                            generatedQuery,
+                            question: question ?? '',
+                          })
+                        }}
+                        icon={<BsTable size="14px" />}
+                        variant="link"
+                        minH={'14px'}
+                        p={1}
+                        color={localIsUseful ? 'gray.500' : 'gray.400'}
+                        minW="fit-content"
+                      />
+                    </Tooltip>
+                    <GenerateChartButton messageId={Number(id)} />
+                  </>
                 )}
-                <GenerateChartButton messageId={Number(id)} />
+
                 <Tooltip label="Good response">
                   <IconButton
                     aria-label="useful"
