@@ -48,7 +48,8 @@ COPY --from=builder /app/node_modules/pyodide ./node_modules/pyodide
 # Set the correct permission for prerender cache
 RUN mkdir .next
 RUN chown nextjs:nodejs .next
-RUN chown -R nextjs:nodejs node_modules 
+# prevent EACCESS errors by giving read, write and execute access to node_modules from pyodide
+RUN chown -R 755 nextjs:nodejs node_modules/pyodide
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
