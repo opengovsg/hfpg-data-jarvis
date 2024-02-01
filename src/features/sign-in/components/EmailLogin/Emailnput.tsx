@@ -54,9 +54,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSuccess }) => {
           isInvalid={!!errors.email}
           isReadOnly={loginMutation.isLoading}
         >
-          <FormLabel>
-            Log in with a .gov.sg or whitelisted email address
-          </FormLabel>
+          <FormLabel>Log in with your email address</FormLabel>
           <Input
             placeholder="e.g. jane@open.gov.sg"
             autoFocus

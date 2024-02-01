@@ -1,12 +1,13 @@
 import { z } from 'zod'
 import { OTP_LENGTH } from '~/lib/auth'
-import { isGovEmail } from '~/utils/email'
 import { normaliseEmail } from '~/utils/zod'
 
 export const emailSignInSchema = z.object({
-  email: normaliseEmail.refine(isGovEmail, {
-    message: 'Please sign in with an .gov.sg email address.',
-  }),
+  // TODO: Re-enable government email whitelisting after demo day
+  email: normaliseEmail,
+  // email: normaliseEmail.refine(isGovEmail, {
+  //   message: 'Please sign in with an .gov.sg email address.',
+  // }),
 })
 
 export const emailVerifyOtpSchema = emailSignInSchema.extend({
