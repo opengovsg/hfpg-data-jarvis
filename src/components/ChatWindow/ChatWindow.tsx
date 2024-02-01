@@ -234,7 +234,7 @@ const ChatWindow = ({
             </FormErrorMessage>
           </FormControl>
 
-          <Text textStyle="caption-2" textAlign="center">
+          <Text textStyle="caption-2" textAlign="center" fontSize={'xx-small'}>
             Watson makes use of an AI language model. Any content it generates
             may contain errors, inconsistencies, or outdated information, and
             should not be considered as a substitute for government advice.
