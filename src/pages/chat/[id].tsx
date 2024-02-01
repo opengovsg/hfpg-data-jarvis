@@ -26,19 +26,27 @@ import { Navbar } from '~/components/SideMenu/Navbar'
 import { useIsTabletView } from '~/hooks/isTabletView'
 import { TableInfoLayout } from '~/components/ChatWindow/TableDataViewer'
 import { LayoutWithBanner } from '~/templates/layouts/LayoutWithBanner'
+import Head from 'next/head'
 
 const Chat: NextPageWithLayout = () => {
   const conversationId =
     router.query.id === undefined ? FAKE_CHAT_ID : Number(router.query.id)
 
+  const pageTitle =
+    conversationId == FAKE_CHAT_ID ? 'Watson' : `Conversation ${conversationId}`
+
   const isTabletView = useIsTabletView()
 
   return (
     <EnforceLoginStatePageWrapper>
+      <Head>
+        <title>{pageTitle}</title>
+      </Head>
+
       <Grid
         gridTemplateColumns={isTabletView ? undefined : `260px 1fr`}
         gridTemplateRows={isTabletView ? 'min-content 1fr' : undefined}
-        h="$100vh"
+        h="100%"
         overflowY="hidden"
       >
         {isTabletView ? <Navbar /> : <SideMenu />}

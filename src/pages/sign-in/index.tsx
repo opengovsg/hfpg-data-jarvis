@@ -20,7 +20,7 @@ const SignIn: NextPageWithLayout = () => {
     <PublicPageWrapper strict>
       <Flex flexDir="column" h="inherit" minH="$100vh">
         <RestrictedGovtMasthead />
-        <Banner variant="warn">
+        <Banner variant="warn" size="sm">
           <Text>
             Watson is a work-in-progress Hackathon project for OGP&apos;s{' '}
             <Link href="https://hack.gov.sg/about-hfpg/hfpg/" target="_blank">
