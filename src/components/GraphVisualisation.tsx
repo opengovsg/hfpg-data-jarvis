@@ -123,7 +123,7 @@ const ViewChartModal = ({
   onClose: () => void
 }) => {
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="full">
+    <Modal isOpen={isOpen} onClose={onClose} size="large">
       <ModalOverlay />
       <ModalContent>
         <ModalCloseButton />
@@ -151,5 +151,5 @@ const ChartDisplay = ({ messageId }: { messageId: number }) => {
     messageId,
   })
 
-  return <Image src={presignedUrl} alt="graph" width={1000} height={1000} />
+  return <Image src={presignedUrl} alt="graph" width={700} height={700} />
 }
