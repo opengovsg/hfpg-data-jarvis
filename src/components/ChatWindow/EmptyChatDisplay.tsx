@@ -38,7 +38,7 @@ const suggestions = [
   },
   {
     header: 'What is the year over year average price trend',
-    content: 'for 3-bedroom flats in Woodlands?',
+    content: 'for 3-bedroom flats in Woodlands from 2015-2023?',
   },
 ] as const
 
