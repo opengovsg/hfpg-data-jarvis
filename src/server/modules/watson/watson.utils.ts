@@ -20,7 +20,7 @@ import { getTableInfo } from '../prompt/sql/getTablePrompt'
 import { readonlyWatsonPrismaClient } from '~/server/prisma'
 import { OpenAIClient } from './open-ai'
 
-export const TOKEN_MAX_LIMIT = 16000 // gpt 3.5 16k
+export const TOKEN_MAX_LIMIT = 4096
 
 export const doesPromptExceedTokenLimit = (prompt: string) => {
   // appromximation that 4 char === 1 token
@@ -363,7 +363,7 @@ export const generateMatPlotLibCode = async ({
   `
 
   const openAiRes = await OpenAIClient.chat.completions.create({
-    model: 'gpt-3.5-turbo-16k',
+    model: 'gpt-3.5-turbo',
     messages: [
       {
         role: 'user',

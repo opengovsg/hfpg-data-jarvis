@@ -242,7 +242,7 @@ Respond with only SQL code. Do not answer with any explanations -- just the code
     })
 
   const response = await OpenAIClient.chat.completions.create({
-    model: 'gpt-3.5-turbo-16k',
+    model: 'gpt-3.5-turbo',
     messages: [
       {
         role: 'system',
@@ -324,7 +324,7 @@ async function runQueryAndTranslateToNlp({
   }
 
   const stream = await OpenAIClient.chat.completions.create({
-    model: 'gpt-3.5-turbo-16k',
+    model: 'gpt-3.5-turbo',
     stream: true,
     messages: [{ role: 'user', content: nlpPrompt }],
   })
